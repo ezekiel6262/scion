@@ -1,9 +1,9 @@
 import { MemoryRepository, type Repository } from './repository.ts';
 import { MemoryAuthStore, type AuthStore } from './auth.ts';
-import { Pool } from '@neondatabase/serverless';
+import { Pool } from 'pg';
 
 let pool:Pool|undefined;
-function getPool(url:string){if(!pool)pool=new Pool({connectionString:url});return pool;}
+function getPool(url:string){if(!pool)pool=new Pool({connectionString:url,max:1,idleTimeoutMillis:10000,connectionTimeoutMillis:10000,allowExitOnIdle:true});return pool;}
 
 export async function createRepository(): Promise<Repository> {
   const url=process.env.DATABASE_URL;

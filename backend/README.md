@@ -12,7 +12,7 @@ npm test
 npm start
 ```
 
-For Postgres, set `DATABASE_URL` and run `npm run migrate` before starting the API.
+For hosted Supabase, copy the **Transaction pooler** connection string (port `6543`) into `DATABASE_URL`, link the project with the Supabase CLI, then run `npm run db:push`. For local Supabase, use `npm run supabase:start` followed by `npm run db:reset`.
 
 The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/auth/verify` to exchange a NEAR ed25519 wallet signature for a one-hour bearer session. The `x-near-account` development header is disabled in production unless `SCION_ALLOW_DEV_HEADER=true`.
 
@@ -32,6 +32,6 @@ The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/au
 
 ## Production boundaries
 
-Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime uses Neon Postgres through `@neondatabase/serverless`; apply `migrations/001_initial.sql` first. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
+Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime connects to Supabase Postgres using a one-connection `pg` pool suited to Supavisor transaction mode. Confidential protocol tables live in the non-exposed `scion_private` schema with RLS enabled and no Data API grants. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
 
 See `openapi.yaml` for the frontend contract.
