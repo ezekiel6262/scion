@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Veilbranch — private strategies, public lineage.">
+  <title>Veilbranch — Strategy workspace</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="mark">V</span><span>veilbranch</span></a>
+    <nav><button class="nav active">Workspace</button><button class="nav">Discover</button><button class="nav">Developers</button></nav>
+    <div class="wallet"><span class="dot"></span> bob.near <span class="chev">⌄</span></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow"><span>STRATEGY / VB-042</span><span class="version">v1.3.0</span><span class="private">PRIVATE</span></div>
+        <h1>Quiet Delta</h1>
+        <p class="lede">Cross-chain stablecoin mean reversion with volatility-gated entries.</p>
+        <div class="creator"><span class="avatar">A</span><div><b>Alice Chen</b><small>alice.near · wallet-attested</small></div><button class="follow">Following</button></div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-head"><span>VERIFIED PERFORMANCE</span><span class="live"><i></i> FRESH 2M</span></div>
+        <div class="metric-main">+18.4% <small>90D</small></div>
+        <svg viewBox="0 0 280 64" aria-label="Performance chart"><path d="M2 57 C28 50 31 38 54 42 S85 50 106 29 S142 36 157 21 S186 30 201 17 S237 21 278 5" fill="none" stroke="#b9ff55" stroke-width="2"/><path d="M2 57 C28 50 31 38 54 42 S85 50 106 29 S142 36 157 21 S186 30 201 17 S237 21 278 5 L278 64 L2 64Z" fill="url(#g)"/><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b9ff55" stop-opacity=".22"/><stop offset="1" stop-color="#b9ff55" stop-opacity="0"/></linearGradient></defs></svg>
+        <div class="metrics"><span><b>1.74</b>SHARPE</span><span><b>-6.8%</b>MAX DD</span><span><b>90d</b>WINDOW</span></div>
+        <div class="proof-foot">Proof <code>9e4a…71c2</code><span>positions hidden</span></div>
+      </div>
+    </section>
+
+    <section class="cockpit">
+      <aside>
+        <p class="aside-label">DEMO FLOW</p>
+        <ol id="steps">
+          <li class="active" data-step="0"><i>1</i><span>Private strategy<small>Published by Alice</small></span></li>
+          <li data-step="1"><i>2</i><span>Confidential trade<small>NEAR Intents</small></span></li>
+          <li data-step="2"><i>3</i><span>Scoped access<small>View + Fork Key</small></span></li>
+          <li data-step="3"><i>4</i><span>Fork & customize<small>Bob's policy</small></span></li>
+          <li data-step="4"><i>5</i><span>Execute & settle<small>Own wallet + royalty</small></span></li>
+          <li data-step="5"><i>6</i><span>Revoke access<small>Lineage persists</small></span></li>
+        </ol>
+        <div class="sim-note"><span>SIMULATION</span><p>No real funds move. Protocol states mirror the intended NEAR flow.</p></div>
+      </aside>
+
+      <div class="panel">
+        <div class="panel-head"><div><span id="stageKicker">PUBLISHED · VERSION 1.3.0</span><h2 id="stageTitle">A strategy is more than a signal.</h2></div><span class="status" id="stageStatus">IMMUTABLE</span></div>
+        <div id="stageBody"></div>
+        <div class="actions"><button class="secondary" id="resetBtn">Reset demo</button><button class="primary" id="nextBtn">Execute confidential trade <span>→</span></button></div>
+      </div>
+    </section>
+
+    <section class="lineage">
+      <div class="section-head"><div><span>PUBLIC LINEAGE</span><h2>Evolution without exposure.</h2></div><p>Every edge names an immutable parent version. Restricted parameters stay encrypted.</p></div>
+      <div class="graph" id="graph">
+        <div class="node root"><span class="node-top"><b>Quiet Delta</b><em>v1.3.0</em></span><strong>+18.4%</strong><small>Alice · origin</small></div>
+        <div class="connector"><span>fork license · 5%</span></div>
+        <div class="node child locked" id="bobNode"><span class="node-top"><b>Conservative Delta</b><em>draft</em></span><strong>—</strong><small>Awaiting Bob's fork</small></div>
+        <div class="node sibling"><span class="node-top"><b>Delta / ETH</b><em>v1.1</em></span><strong>+9.2%</strong><small>@mira.near · thesis fork</small></div>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
