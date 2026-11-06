@@ -2,7 +2,7 @@ import { DomainError } from './domain.ts'; import type { ScionService } from './
 
 const json=(body:unknown,status=200,requestId?:string)=>Response.json(body,{status,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,idempotency-key,x-near-account,x-view-key','access-control-allow-methods':'GET,POST,OPTIONS','x-request-id':requestId??''}});
 export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(request:Request)=>{
-  const requestId=randomUUID(),url=new URL(request.url),path=url.pathname.replace(/\/$/,'')||'/';
+  const requestId=randomUUID(),url=new URL(request.url),path=(url.pathname.replace(/^\/api(?=\/|$)/,'').replace(/\/$/,'')||'/');
   if(request.method==='OPTIONS')return json({},204,requestId); const actor=resolveActor(request,auth);
   try{
     console.info(JSON.stringify({event:'request',requestId,method:request.method,path,actor}));
