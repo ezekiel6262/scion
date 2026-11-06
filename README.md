@@ -38,7 +38,7 @@ npm test
 npm start
 ```
 
-The frontend contract is documented in `backend/openapi.yaml`. Persistent storage, wallet-signature verification, settlement contracts, and live NEAR Intents execution remain adapter boundaries rather than being falsely represented as production integrations.
+The frontend contract is documented in `backend/openapi.yaml`. Supabase Postgres persistence and NEAR wallet-signature verification are implemented. Settlement contracts, encrypted object storage, and live NEAR Intents execution remain adapter boundaries rather than being falsely represented as production integrations.
 
 ## Project foundations
 
@@ -46,6 +46,6 @@ See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md), [docs/THREAT_MODEL.md](docs/TH
 
 ## Honest integration boundary
 
-Implemented now: strategy state machine, capability scopes, field-level disclosure, fork lineage, local policy checks, simulated receipts, royalty accounting, revocation and expiry.
+Implemented now: strategy state machine, Supabase persistence, NEAR wallet sessions, capability scopes, field-level disclosure, fork lineage, capability-gated execution, hash-bound manual confirmation, local policy checks, simulated receipts, royalty accounting, revocation and expiry.
 
 Next production integrations: NEAR wallet signing, 1Click/NEAR Intents quote and execution, chain-indexed proof attestations, encrypted object storage, smart-contract settlement, and confidential-compute inference.

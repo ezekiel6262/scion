@@ -1,6 +1,6 @@
 import { DomainError } from './domain.ts'; import type { ScionService } from './service.ts'; import type { WalletAuthService } from './auth.ts'; import { randomUUID } from 'node:crypto';
 
-const json=(body:unknown,status=200,requestId?:string)=>Response.json(body,{status,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-near-account,x-view-key','access-control-allow-methods':'GET,POST,OPTIONS','x-request-id':requestId??''}});
+const json=(body:unknown,status=200,requestId?:string)=>Response.json(body,{status,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,x-near-account,x-view-key','access-control-allow-methods':'GET,POST,OPTIONS','x-request-id':requestId??''}});
 export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(request:Request)=>{
   const requestId=randomUUID(),url=new URL(request.url),path=url.pathname.replace(/\/$/,'')||'/';
   if(request.method==='OPTIONS')return json({},204,requestId); const actor=resolveActor(request,auth);
@@ -15,7 +15,7 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     if(request.method==='POST'&&path==='/v1/capabilities')return json({data:await service.issueCapability(requireActor(actor),await request.json())},201,requestId);
     m=path.match(/^\/v1\/capabilities\/([^/]+)\/revoke$/);if(request.method==='POST'&&m)return json({data:await service.revoke(requireActor(actor),m[1])},200,requestId);
     if(request.method==='POST'&&path==='/v1/forks')return json({data:await service.createFork(requireActor(actor),await request.json())},201,requestId);
-    if(request.method==='POST'&&path==='/v1/executions/preview'){const b=await request.json() as any;return json({data:service.evaluatePolicy(b.proposal,b.policy)},200,requestId);}
+    if(request.method==='POST'&&path==='/v1/executions/preview')return json({data:await service.previewExecution(requireActor(actor),await request.json())},200,requestId);
     if(request.method==='POST'&&path==='/v1/executions')return json({data:await service.execute(requireActor(actor),await request.json())},201,requestId);
     m=path.match(/^\/v1\/strategies\/([^/]+)\/lineage$/);if(request.method==='GET'&&m)return json({data:await service.lineage(m[1])},200,requestId);
     return json({error:{code:'not_found',message:'Route not found'},requestId},404,requestId);

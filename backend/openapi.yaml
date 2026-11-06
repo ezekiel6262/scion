@@ -6,7 +6,8 @@ info:
 servers: [{ url: http://localhost:8787 }]
 components:
   securitySchemes:
-    NearAccount: { type: apiKey, in: header, name: x-near-account, description: Development placeholder for a verified NEAR wallet session }
+    BearerAuth: { type: http, scheme: bearer, description: One-hour session returned by the NEAR wallet verification endpoint }
+    NearAccount: { type: apiKey, in: header, name: x-near-account, description: Development-only identity header; disabled in production by default }
     ViewKey: { type: apiKey, in: header, name: x-view-key }
 paths:
   /v1/auth/challenge:
@@ -17,25 +18,25 @@ paths:
     get: { responses: { '200': { description: Healthy } } }
   /v1/strategies:
     get: { responses: { '200': { description: Public strategy catalog } } }
-    post: { security: [{ NearAccount: [] }], responses: { '201': { description: Strategy and immutable v1 created } } }
+    post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Strategy and immutable v1 created } } }
   /v1/versions/{versionId}:
     get:
       parameters: [{ name: versionId, in: path, required: true, schema: { type: string } }]
-      security: [{ NearAccount: [], ViewKey: [] }, {}]
+      security: [{ BearerAuth: [], ViewKey: [] }, { NearAccount: [], ViewKey: [] }, {}]
       responses: { '200': { description: Public or capability-projected version } }
   /v1/capabilities:
-    post: { security: [{ NearAccount: [] }], responses: { '201': { description: Subject-bound capability issued } } }
+    post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Subject-bound capability issued } } }
   /v1/capabilities/{capabilityId}/revoke:
     post:
       parameters: [{ name: capabilityId, in: path, required: true, schema: { type: string } }]
-      security: [{ NearAccount: [] }]
+      security: [{ BearerAuth: [] }, { NearAccount: [] }]
       responses: { '200': { description: Capability revoked } }
   /v1/forks:
-    post: { security: [{ NearAccount: [] }], responses: { '201': { description: Fork and lineage edge created } } }
+    post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Fork and lineage edge created } } }
   /v1/executions/preview:
-    post: { responses: { '200': { description: Deterministic follower policy decision } } }
+    post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '200': { description: Deterministic follower policy decision; non-owners must supply an execution.preview capability token in the request body }, '403': { description: Required execution capability is missing or invalid } } }
   /v1/executions:
-    post: { security: [{ NearAccount: [] }], responses: { '201': { description: Execution receipt created }, '422': { description: Policy rejected execution } } }
+    post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Execution receipt created; non-owners must supply an execution.submit capability token }, '409': { description: Manual confirmation required; resubmit with confirmedPolicyHash from preview }, '422': { description: Policy rejected execution } } }
   /v1/strategies/{strategyId}/lineage:
     get:
       parameters: [{ name: strategyId, in: path, required: true, schema: { type: string } }]

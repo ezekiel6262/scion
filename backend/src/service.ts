@@ -34,6 +34,7 @@ export class ScionService {
   async issueCapability(actor:string,input:any){
     requireFields(input,['subject','versionId','scopes','expiresInSeconds']); const version=await this.mustVersion(input.versionId); if(version.owner!==actor)throw new DomainError('forbidden','Only the version owner can issue access',403);
     const allowed:Scope[]=['thesis.summary','positions.assets','positions.sizes','strategy.fork','execution.preview','execution.submit']; if(!Array.isArray(input.scopes)||input.scopes.some((s:string)=>!allowed.includes(s as Scope)))throw new DomainError('invalid_scope','Capability contains an unsupported scope');
+    if(!Number.isInteger(input.expiresInSeconds)||input.expiresInSeconds<1||input.expiresInSeconds>86400)throw new DomainError('invalid_expiry','Capability lifetime must be between 1 and 86400 seconds');
     const capabilityId=id('cap'),payload=Buffer.from(JSON.stringify({id:capabilityId,sub:input.subject,ver:input.versionId})).toString('base64url'),token=signToken(payload,this.secret);
     const cap:Capability={id:capabilityId,subject:input.subject,issuer:actor,versionId:input.versionId,scopes:input.scopes,expiresAt:new Date(this.now().getTime()+Math.min(input.expiresInSeconds,86400)*1000).toISOString(),status:'active',tokenHash:hash(token),priceMinor:input.priceMinor??100000,currency:'USDC',createdAt:this.now().toISOString()}; await this.repo.putCapability(cap); return {capability:{...cap,tokenHash:undefined},token};
   }
@@ -46,9 +47,25 @@ export class ScionService {
   evaluatePolicy(proposal:ExecutionProposal,policy:FollowerPolicy):PolicyDecision{
     const violations:string[]=[],clamps:string[]=[]; const disallowed=proposal.assets.filter(a=>!policy.allowedAssets.includes(a)); if(disallowed.length)violations.push(`assets_not_allowed:${disallowed.join(',')}`); if(proposal.slippageBps>policy.maxSlippageBps)violations.push('slippage_exceeds_limit'); if(proposal.leverageBps>policy.maxLeverageBps)violations.push('leverage_exceeds_limit'); const effective=Math.min(proposal.requestedAllocationBps,policy.maxAllocationBps); if(effective<proposal.requestedAllocationBps)clamps.push(`allocation:${proposal.requestedAllocationBps}->${effective}`); const decision={allowed:violations.length===0,requiresConfirmation:proposal.notionalMinor>policy.manualConfirmationAboveMinor,effectiveAllocationBps:effective,violations,clamps,policyHash:''};decision.policyHash=hash({proposal,policy,effective});return decision;
   }
-  async execute(actor:string,input:any){ requireFields(input,['proposal','policy']); const version=await this.mustVersion(input.proposal.versionId); const decision=this.evaluatePolicy(input.proposal,input.policy); if(!decision.allowed)throw new DomainError('policy_rejected',decision.violations.join('; '),422); const receipt=await this.execution.submit(actor,version,input.proposal,decision);await this.repo.putExecution(receipt);return {decision,receipt}; }
+  async previewExecution(actor:string,input:any){
+    requireFields(input,['proposal','policy']); const version=await this.mustVersion(input.proposal.versionId);
+    await this.authorizeExecution(actor,version,input.capabilityToken,'execution.preview');
+    return this.evaluatePolicy(input.proposal,input.policy);
+  }
+  async execute(actor:string,input:any){
+    requireFields(input,['proposal','policy']); const version=await this.mustVersion(input.proposal.versionId);
+    await this.authorizeExecution(actor,version,input.capabilityToken,'execution.submit');
+    const decision=this.evaluatePolicy(input.proposal,input.policy); if(!decision.allowed)throw new DomainError('policy_rejected',decision.violations.join('; '),422);
+    if(decision.requiresConfirmation&&input.confirmedPolicyHash!==decision.policyHash)throw new DomainError('confirmation_required','Manual confirmation is required for this policy decision',409);
+    const receipt=await this.execution.submit(actor,version,input.proposal,decision);await this.repo.putExecution(receipt);return {decision,receipt};
+  }
   async lineage(strategyId:string){ const strategy=await this.repo.getStrategy(strategyId);if(!strategy)throw new DomainError('not_found','Strategy not found',404);return {strategyId,nodes:[{versionId:strategy.latestVersionId,owner:strategy.owner,name:strategy.name}],edges:await this.repo.listForks(strategyId)}; }
   private async mustVersion(id:string){const v=await this.repo.getVersion(id);if(!v)throw new DomainError('not_found','Strategy version not found',404);return v;}
+  private async authorizeExecution(actor:string,version:StrategyVersion,token:string|undefined,scope:'execution.preview'|'execution.submit'){
+    if(actor===version.owner)return;
+    if(!token)throw new DomainError('capability_required',`${scope} capability required`,403);
+    const capability=await this.validateCapability(actor,version.id,token); if(!capability.scopes.includes(scope))throw new DomainError('missing_scope',`${scope} scope required`,403);
+  }
   private async validateCapability(actor:string,versionId:string,token:string){const raw=verifyToken(token,this.secret);if(!raw)throw new DomainError('invalid_capability','Capability signature is invalid',401);let payload:any;try{payload=JSON.parse(Buffer.from(raw,'base64url').toString())}catch{throw new DomainError('invalid_capability','Capability payload is invalid',401)} const cap=await this.repo.getCapability(payload.id);if(!cap||cap.tokenHash!==hash(token))throw new DomainError('invalid_capability','Capability is unknown',401);if(cap.subject!==actor)throw new DomainError('wrong_subject','Capability belongs to another account',403);if(cap.versionId!==versionId)throw new DomainError('wrong_resource','Capability does not cover this version',403);if(cap.status==='revoked')throw new DomainError('revoked','Capability was revoked',403);if(new Date(cap.expiresAt)<=this.now())throw new DomainError('expired','Capability expired',403);return cap;}
 }
 function requireFields(value:any,fields:string[]){if(!value||typeof value!=='object')throw new DomainError('invalid_body','JSON object required');const missing=fields.filter(f=>value[f]===undefined);if(missing.length)throw new DomainError('missing_fields',`Missing: ${missing.join(', ')}`);}

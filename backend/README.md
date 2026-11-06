@@ -26,6 +26,8 @@ The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/au
 - Scoped field projection (assets can be revealed while sizes remain hidden)
 - Fork creation with upstream attribution and royalty terms
 - Deterministic follower-side execution policy evaluation
+- Capability-gated preview and submission for non-owner executions
+- Hash-bound manual confirmation for executions above follower limits
 - Simulated NEAR Intents execution receipts behind an adapter
 - Public lineage graph
 - Structured errors, request IDs, and audit events
@@ -33,5 +35,7 @@ The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/au
 ## Production boundaries
 
 Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime connects to Supabase Postgres using a one-connection `pg` pool suited to Supavisor transaction mode. Confidential protocol tables live in the non-exposed `scion_private` schema with RLS enabled and no Data API grants. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
+
+Execution is deliberately two-step when the follower policy requires confirmation: call `/v1/executions/preview`, show the decision to the wallet owner, then send that decision's `policyHash` as `confirmedPolicyHash` to `/v1/executions`. Any change to the proposal or policy produces a different hash and requires a fresh confirmation.
 
 See `openapi.yaml` for the frontend contract.

@@ -26,3 +26,25 @@ test('policy engine rejects disallowed assets and excessive slippage', () => {
   const decision = service.evaluatePolicy({versionId:'v',requestedAllocationBps:1000,slippageBps:80,leverageBps:10000,assets:['BTC'],notionalMinor:100},{maxAllocationBps:800,maxSlippageBps:30,allowedAssets:['USDC'],maxLeverageBps:10000,dailyLossLimitBps:200,manualConfirmationAboveMinor:25000});
   assert.equal(decision.allowed, false); assert.deepEqual(decision.violations, ['assets_not_allowed:BTC','slippage_exceeds_limit']); assert.equal(decision.effectiveAllocationBps, 800);
 });
+
+test('execution capabilities and manual confirmation fail closed', async () => {
+  const repo = new MemoryRepository();
+  const service = new ScionService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));
+  await service.seed();
+  const proposal={versionId:'ver_quiet_delta_130',requestedAllocationBps:500,slippageBps:20,leverageBps:10000,assets:['USDC'],notionalMinor:50000};
+  const policy={maxAllocationBps:800,maxSlippageBps:30,allowedAssets:['USDC'],maxLeverageBps:10000,dailyLossLimitBps:200,manualConfirmationAboveMinor:25000};
+  await assert.rejects(() => service.previewExecution('bob.near',{proposal,policy}), /capability required/i);
+  const issued:any=await service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['execution.preview','execution.submit'],expiresInSeconds:900});
+  const decision=await service.previewExecution('bob.near',{proposal,policy,capabilityToken:issued.token});
+  assert.equal(decision.requiresConfirmation,true);
+  await assert.rejects(() => service.execute('bob.near',{proposal,policy,capabilityToken:issued.token}), /manual confirmation/i);
+  const result=await service.execute('bob.near',{proposal,policy,capabilityToken:issued.token,confirmedPolicyHash:decision.policyHash});
+  assert.equal(result.receipt.status,'simulated-settled');
+});
+
+test('capability expiry must be positive and bounded', async () => {
+  const service = new ScionService(new MemoryRepository(), new SimulatedNearIntentsAdapter(), 'test-secret');
+  await service.seed();
+  await assert.rejects(() => service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['thesis.summary'],expiresInSeconds:0}), /lifetime/i);
+  await assert.rejects(() => service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['thesis.summary'],expiresInSeconds:86401}), /lifetime/i);
+});
