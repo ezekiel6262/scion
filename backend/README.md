@@ -22,6 +22,9 @@ The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/au
 - Public payloads that omit private positions and thesis content
 - NEAR ed25519 wallet challenge verification and signed sessions
 - Signed, subject-bound, scoped capability tokens
+- Creator-defined priced access offers and idempotent simulated USDC settlement
+- Atomic capability issuance plus creator/upstream royalty ledger entries
+- Authenticated earnings summaries
 - Expiry and revocation checks
 - Scoped field projection (assets can be revealed while sizes remain hidden)
 - Fork creation with upstream attribution and royalty terms
@@ -34,7 +37,7 @@ The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/au
 
 ## Production boundaries
 
-Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime connects to Supabase Postgres using a one-connection `pg` pool suited to Supavisor transaction mode. Confidential protocol tables live in the non-exposed `scion_private` schema with RLS enabled and no Data API grants. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
+Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime connects to Supabase Postgres using a one-connection `pg` pool suited to Supavisor transaction mode. Confidential protocol tables live in the non-exposed `scion_private` schema with RLS enabled and no Data API grants. Purchases use provider and database idempotency; the purchase, capability, and balanced revenue entries commit in one short transaction. The current USDC settlement adapter is deterministic and simulated. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
 
 Execution is deliberately two-step when the follower policy requires confirmation: call `/v1/executions/preview`, show the decision to the wallet owner, then send that decision's `policyHash` as `confirmedPolicyHash` to `/v1/executions`. Any change to the proposal or policy produces a different hash and requires a fresh confirmation.
 

@@ -48,3 +48,20 @@ test('capability expiry must be positive and bounded', async () => {
   await assert.rejects(() => service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['thesis.summary'],expiresInSeconds:0}), /lifetime/i);
   await assert.rejects(() => service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['thesis.summary'],expiresInSeconds:86401}), /lifetime/i);
 });
+
+test('paid access is idempotent and splits fork royalties', async () => {
+  const repo = new MemoryRepository();
+  const service = new ScionService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));
+  await service.seed();
+  const forkGrant:any=await service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['strategy.fork'],expiresInSeconds:900});
+  const fork:any=await service.createFork('bob.near',{parentVersionId:'ver_quiet_delta_130',name:'Conservative Delta',slug:'conservative-delta-paid',capabilityToken:forkGrant.token,changes:{risk:{maxDrawdownBps:400,leverageBps:10000}}});
+  const offer=await service.createOffer('bob.near',{versionId:fork.strategy.latestVersionId,scopes:['thesis.summary','execution.preview'],expiresInSeconds:3600,priceMinor:100000});
+  const first:any=await service.purchaseAccess('carol.near',{offerId:offer.id},'purchase-001');
+  const replay:any=await service.purchaseAccess('carol.near',{offerId:offer.id},'purchase-001');
+  assert.equal(replay.purchase.id,first.purchase.id); assert.equal(replay.token,first.token); assert.equal(repo.purchases.size,1);
+  const bob=await service.earnings('bob.near'),alice=await service.earnings('alice.near');
+  assert.equal(bob.totalMinor,95000); assert.equal(alice.totalMinor,5000);
+  assert.equal(bob.entries[0].kind,'creator_revenue'); assert.equal(alice.entries[0].kind,'upstream_royalty');
+  const scoped:any=await service.readVersion('carol.near',fork.strategy.latestVersionId,first.token);
+  assert.equal(scoped.thesis.summary.length>0,true);
+});

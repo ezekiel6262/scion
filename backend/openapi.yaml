@@ -31,6 +31,15 @@ paths:
       parameters: [{ name: capabilityId, in: path, required: true, schema: { type: string } }]
       security: [{ BearerAuth: [] }, { NearAccount: [] }]
       responses: { '200': { description: Capability revoked } }
+  /v1/access/offers:
+    post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Immutable priced USDC access offer created by the version owner }, '403': { description: Only the version owner may create an offer } } }
+  /v1/access/purchases:
+    post:
+      parameters: [{ name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 128 } }]
+      security: [{ BearerAuth: [] }, { NearAccount: [] }]
+      responses: { '201': { description: Settled purchase, subject-bound capability, and access token; replaying the same key returns the original result }, '400': { description: Invalid or missing idempotency key }, '404': { description: Offer unavailable } }
+  /v1/earnings:
+    get: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '200': { description: Authenticated account earnings and royalty ledger } } }
   /v1/forks:
     post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Fork and lineage edge created } } }
   /v1/executions/preview:

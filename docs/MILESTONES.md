@@ -16,9 +16,9 @@ Integrate 1Click/NEAR Intents quote flow; bind quote to strategy and follower-po
 
 Client-side field encryption, scoped key envelopes, delayed release worker, wallet-linked aggregate metric computation, assurance labels, proof freshness, and negative tests for unauthorized fields.
 
-## M4 — Fork economics (1–2 days)
+## M4 — Fork economics (in progress)
 
-Immutable parent link, semantic diff, fork publishing, access settlement split, upstream royalty receipt, public lineage graph.
+Implemented: immutable parent link, fork publishing, idempotent simulated USDC access settlement, atomic creator/upstream royalty split, earnings ledger, and public lineage graph. Remaining: semantic diff UI and live on-chain settlement receipts.
 
 ## M5 — Developer + thesis track (1–2 days)
 

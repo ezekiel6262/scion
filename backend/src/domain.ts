@@ -16,6 +16,9 @@ export type FollowerPolicy = { maxAllocationBps: number; maxSlippageBps: number;
 export type ExecutionProposal = { versionId: string; requestedAllocationBps: number; slippageBps: number; leverageBps: number; assets: string[]; notionalMinor: number };
 export type PolicyDecision = { allowed: boolean; requiresConfirmation: boolean; effectiveAllocationBps: number; violations: string[]; clamps: string[]; policyHash: string };
 export type ExecutionReceipt = { id: string; executor: string; versionId: string; intentHash: string; policyHash: string; mode: 'simulated' | 'live'; status: 'simulated-settled' | 'submitted'; createdAt: string };
+export type AccessOffer = { id: string; issuer: string; versionId: string; scopes: Scope[]; expiresInSeconds: number; priceMinor: number; currency: 'USDC'; status: 'active' | 'revoked'; createdAt: string };
+export type AccessPurchase = { id: string; idempotencyKey: string; buyer: string; offerId: string; versionId: string; issuer: string; amountMinor: number; currency: 'USDC'; status: 'settled'; settlementRef: string; capabilityId: string; createdAt: string };
+export type LedgerEntry = { id: string; purchaseId: string; account: string; kind: 'creator_revenue' | 'upstream_royalty'; amountMinor: number; currency: 'USDC'; createdAt: string };
 
 export class DomainError extends Error {
   code: string;

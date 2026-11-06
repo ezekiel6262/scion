@@ -10,6 +10,11 @@ StrategyVersion(id, strategy_id, semver, parent_version_id, manifest_hash,
   horizon, disclosure_policy_id, license_id, created_at)
 CapabilityGrant(id, issuer_id, subject_id, version_id, kind, fields[], actions[],
   not_before, expires_at, delay_seconds, quota, price, nonce, status)
+AccessOffer(id, issuer_id, version_id, scopes[], expires_in_seconds,
+  price_minor, currency, status, created_at)
+AccessPurchase(id, idempotency_key, buyer_id, offer_id, version_id, issuer_id,
+  amount_minor, currency, settlement_ref, capability_id, status, created_at)
+LedgerEntry(id, purchase_id, account_id, kind, amount_minor, currency, created_at)
 FollowerPolicy(id, owner_id, max_allocation, max_slippage_bps, assets[],
   max_leverage, daily_loss_limit, max_drawdown, confirmation_threshold)
 Execution(id, version_id, executor_id, policy_id, intent_hash, quote_hash,
@@ -18,8 +23,6 @@ PerformanceProof(id, strategy_id, window, metric_set, capital_band,
   assurance, proof_hash, observed_at)
 ForkEdge(parent_version_id, child_version_id, creator_id, change_set_hash,
   license_id, royalty_bps)
-Settlement(id, grant_id, payer_id, gross, protocol_fee, creator_amount,
-  upstream_amount, receipt_ref)
 Revocation(grant_id, nonce, reason_code, revoked_at)
 ```
 
@@ -36,3 +39,5 @@ Private by default: thesis body, evidence contents, exact positions/sizes, rules
 - Change sets list semantic fields changed, while secret values remain encrypted.
 - Performance attaches to the exact executed version and cannot automatically transfer to a fork.
 - Deleting a public node tombstones content but preserves lineage and receipts.
+- A buyer/idempotency-key pair identifies one purchase. Capability issuance and all revenue entries commit atomically after settlement.
+- Ledger entries for a purchase must sum to its gross amount; fork royalties are calculated from the immutable fork edge.

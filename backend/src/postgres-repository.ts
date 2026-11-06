@@ -1,8 +1,9 @@
-import type { Capability, ExecutionReceipt, ForkEdge, Strategy, StrategyVersion } from './domain.ts';
+import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdge, LedgerEntry, Strategy, StrategyVersion } from './domain.ts';
 import type { Repository } from './repository.ts';
 import type { AuthChallenge, AuthStore } from './auth.ts';
 
-export interface Queryable { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
+export interface QueryClient extends Queryable { release(): void }
+export interface Queryable { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; connect?():Promise<QueryClient> }
 
 export class PostgresRepository implements Repository {
   constructor(privateDb: Queryable) { this.db = privateDb; }
@@ -26,7 +27,16 @@ export class PostgresRepository implements Repository {
   async getCapability(id: string) { const r=await this.db.query('SELECT * FROM scion_private.capabilities WHERE id=$1',[id]); return r.rows[0]&&toCapability(r.rows[0]); }
   async putFork(v: ForkEdge) { await this.db.query(`INSERT INTO scion_private.fork_edges (id,parent_version_id,child_version_id,creator_account,changed_fields,royalty_bps,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING`,[v.id,v.parentVersionId,v.childVersionId,v.creator,v.changedFields,v.royaltyBps,v.createdAt]); }
   async listForks(strategyId: string) { const r=await this.db.query(`SELECT f.* FROM scion_private.fork_edges f JOIN scion_private.strategy_versions v ON v.id=f.parent_version_id OR v.id=f.child_version_id WHERE v.strategy_id=$1 ORDER BY f.created_at`,[strategyId]); return r.rows.map(toFork); }
+  async getForkByChildVersion(versionId:string){const r=await this.db.query('SELECT * FROM scion_private.fork_edges WHERE child_version_id=$1',[versionId]);return r.rows[0]&&toFork(r.rows[0]);}
   async putExecution(v: ExecutionReceipt) { await this.db.query(`INSERT INTO scion_private.executions (id,executor_account,version_id,intent_hash,policy_hash,mode,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (id) DO NOTHING`,[v.id,v.executor,v.versionId,v.intentHash,v.policyHash,v.mode,v.status,v.createdAt]); }
+  async putOffer(v:AccessOffer){await this.db.query(`INSERT INTO scion_private.access_offers (id,issuer_account,version_id,scopes,expires_in_seconds,price_minor,currency,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status`,[v.id,v.issuer,v.versionId,v.scopes,v.expiresInSeconds,v.priceMinor,v.currency,v.status,v.createdAt]);}
+  async getOffer(id:string){const r=await this.db.query('SELECT * FROM scion_private.access_offers WHERE id=$1',[id]);return r.rows[0]&&toOffer(r.rows[0]);}
+  async getPurchaseByIdempotency(buyer:string,key:string){const r=await this.db.query('SELECT * FROM scion_private.access_purchases WHERE buyer_account=$1 AND idempotency_key=$2',[buyer,key]);return r.rows[0]&&toPurchase(r.rows[0]);}
+  async settleAccessPurchase(p:AccessPurchase,c:Capability,entries:LedgerEntry[]){
+    if(!this.db.connect)throw new Error('Database adapter does not support transactions'); const client=await this.db.connect();
+    try{await client.query('BEGIN');const inserted=await client.query(`INSERT INTO scion_private.access_purchases (id,idempotency_key,buyer_account,offer_id,version_id,issuer_account,amount_minor,currency,status,settlement_ref,capability_id,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (buyer_account,idempotency_key) DO NOTHING RETURNING id`,[p.id,p.idempotencyKey,p.buyer,p.offerId,p.versionId,p.issuer,p.amountMinor,p.currency,p.status,p.settlementRef,p.capabilityId,p.createdAt]);if(!inserted.rows.length){await client.query('ROLLBACK');return;}await client.query(`INSERT INTO scion_private.capabilities (id,subject_account,issuer_account,version_id,scopes,expires_at,status,token_hash,price_minor,currency,created_at,revoked_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[c.id,c.subject,c.issuer,c.versionId,c.scopes,c.expiresAt,c.status,c.tokenHash,c.priceMinor,c.currency,c.createdAt,c.revokedAt??null]);for(const e of entries)await client.query(`INSERT INTO scion_private.ledger_entries (id,purchase_id,account_id,kind,amount_minor,currency,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,[e.id,e.purchaseId,e.account,e.kind,e.amountMinor,e.currency,e.createdAt]);await client.query('COMMIT');}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+  }
+  async listLedgerEntries(account:string){const r=await this.db.query('SELECT * FROM scion_private.ledger_entries WHERE account_id=$1 ORDER BY created_at DESC,id DESC',[account]);return r.rows.map(toLedgerEntry);}
 }
 
 export class PostgresAuthStore implements AuthStore {
@@ -38,3 +48,6 @@ export class PostgresAuthStore implements AuthStore {
 const toStrategy=(r:any):Strategy=>({id:r.id,slug:r.slug,name:r.name,owner:r.owner_account,latestVersionId:r.latest_version_id,visibility:r.visibility,royaltyBps:r.royalty_bps});
 const toCapability=(r:any):Capability=>({id:r.id,subject:r.subject_account,issuer:r.issuer_account,versionId:r.version_id,scopes:r.scopes,expiresAt:new Date(r.expires_at).toISOString(),status:r.status,tokenHash:r.token_hash,priceMinor:Number(r.price_minor),currency:r.currency,createdAt:new Date(r.created_at).toISOString(),revokedAt:r.revoked_at?new Date(r.revoked_at).toISOString():undefined});
 const toFork=(r:any):ForkEdge=>({id:r.id,parentVersionId:r.parent_version_id,childVersionId:r.child_version_id,creator:r.creator_account,changedFields:r.changed_fields,royaltyBps:r.royalty_bps,createdAt:new Date(r.created_at).toISOString()});
+const toOffer=(r:any):AccessOffer=>({id:r.id,issuer:r.issuer_account,versionId:r.version_id,scopes:r.scopes,expiresInSeconds:r.expires_in_seconds,priceMinor:Number(r.price_minor),currency:r.currency,status:r.status,createdAt:new Date(r.created_at).toISOString()});
+const toPurchase=(r:any):AccessPurchase=>({id:r.id,idempotencyKey:r.idempotency_key,buyer:r.buyer_account,offerId:r.offer_id,versionId:r.version_id,issuer:r.issuer_account,amountMinor:Number(r.amount_minor),currency:r.currency,status:r.status,settlementRef:r.settlement_ref,capabilityId:r.capability_id,createdAt:new Date(r.created_at).toISOString()});
+const toLedgerEntry=(r:any):LedgerEntry=>({id:r.id,purchaseId:r.purchase_id,account:r.account_id,kind:r.kind,amountMinor:Number(r.amount_minor),currency:r.currency,createdAt:new Date(r.created_at).toISOString()});
