@@ -1,14 +1,15 @@
 import { createServer } from 'node:http';
-import { MemoryRepository } from './repository.ts';
 import { SimulatedNearIntentsAdapter } from './adapters.ts';
 import { ScionService } from './service.ts';
 import { createHandler } from './http.ts';
+import { WalletAuthService } from './auth.ts';
+import { createAuthStore, createRepository } from './runtime.ts';
 
 const port = Number(process.env.PORT ?? 8787);
 const secret = process.env.SCION_SIGNING_SECRET ?? 'local-development-secret-change-me';
-const service = new ScionService(new MemoryRepository(), new SimulatedNearIntentsAdapter(), secret);
+const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret);
 await service.seed();
-const handler = createHandler(service);
+const handler = createHandler(service, new WalletAuthService(await createAuthStore(), secret));
 
 const server = createServer(async (req, res) => {
   const chunks: Buffer[] = [];

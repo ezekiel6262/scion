@@ -1,12 +1,14 @@
-import { DomainError } from './domain.ts'; import type { ScionService } from './service.ts'; import { randomUUID } from 'node:crypto';
+import { DomainError } from './domain.ts'; import type { ScionService } from './service.ts'; import type { WalletAuthService } from './auth.ts'; import { randomUUID } from 'node:crypto';
 
 const json=(body:unknown,status=200,requestId?:string)=>Response.json(body,{status,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'content-type,x-near-account,x-view-key','access-control-allow-methods':'GET,POST,OPTIONS','x-request-id':requestId??''}});
-export const createHandler=(service:ScionService)=>async(request:Request)=>{
+export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(request:Request)=>{
   const requestId=randomUUID(),url=new URL(request.url),path=url.pathname.replace(/\/$/,'')||'/';
-  if(request.method==='OPTIONS')return json({},204,requestId); const actor=request.headers.get('x-near-account')??undefined;
+  if(request.method==='OPTIONS')return json({},204,requestId); const actor=resolveActor(request,auth);
   try{
     console.info(JSON.stringify({event:'request',requestId,method:request.method,path,actor}));
     if(request.method==='GET'&&path==='/health')return json({ok:true,service:'scion-api',mode:process.env.SCION_EXECUTION_MODE??'simulated'},200,requestId);
+    if(request.method==='POST'&&path==='/v1/auth/challenge'){const b=await request.json() as any;return json({data:await auth.challenge(b.accountId,b.publicKey)},201,requestId);}
+    if(request.method==='POST'&&path==='/v1/auth/verify'){const b=await request.json() as any;return json({data:await auth.verify(b.challengeId,b.signature)},200,requestId);}
     if(request.method==='GET'&&path==='/v1/strategies')return json({data:await service.listStrategies()},200,requestId);
     if(request.method==='POST'&&path==='/v1/strategies')return json({data:await service.createStrategy(requireActor(actor),await request.json())},201,requestId);
     let m=path.match(/^\/v1\/versions\/([^/]+)$/); if(request.method==='GET'&&m)return json({data:await service.readVersion(actor,m[1],request.headers.get('x-view-key')??undefined)},200,requestId);
@@ -19,4 +21,5 @@ export const createHandler=(service:ScionService)=>async(request:Request)=>{
     return json({error:{code:'not_found',message:'Route not found'},requestId},404,requestId);
   }catch(error){const e=error instanceof DomainError?error:new DomainError('internal_error','Unexpected server error',500);console.error(JSON.stringify({event:'error',requestId,code:e.code,message:error instanceof Error?error.message:String(error)}));return json({error:{code:e.code,message:e.message},requestId},e.status,requestId)}
 };
-function requireActor(actor?:string){if(!actor)throw new DomainError('unauthorized','x-near-account is required',401);return actor;}
+function requireActor(actor?:string){if(!actor)throw new DomainError('unauthorized','A valid bearer session is required',401);return actor;}
+function resolveActor(request:Request,auth:WalletAuthService){const authorization=request.headers.get('authorization');if(authorization?.startsWith('Bearer '))return auth.actorFromToken(authorization.slice(7));const dev=request.headers.get('x-near-account');if(dev&&(process.env.NODE_ENV!=='production'||process.env.SCION_ALLOW_DEV_HEADER==='true'))return dev;return undefined;}

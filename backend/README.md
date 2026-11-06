@@ -12,12 +12,15 @@ npm test
 npm start
 ```
 
-The API listens on `http://localhost:8787`. Authentication is deliberately replaceable in this slice: send `x-near-account: alice.near` or `x-near-account: bob.near`. Production replaces that header with a verified NEAR wallet challenge/signature session.
+For Postgres, set `DATABASE_URL` and run `npm run migrate` before starting the API.
+
+The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/auth/verify` to exchange a NEAR ed25519 wallet signature for a one-hour bearer session. The `x-near-account` development header is disabled in production unless `SCION_ALLOW_DEV_HEADER=true`.
 
 ## Implemented vertical slice
 
 - Immutable strategy versions and exact parent links
 - Public payloads that omit private positions and thesis content
+- NEAR ed25519 wallet challenge verification and signed sessions
 - Signed, subject-bound, scoped capability tokens
 - Expiry and revocation checks
 - Scoped field projection (assets can be revealed while sizes remain hidden)
@@ -29,6 +32,6 @@ The API listens on `http://localhost:8787`. Authentication is deliberately repla
 
 ## Production boundaries
 
-`MemoryRepository` is only for local development and tests. The domain layer depends on repository, payment, and execution ports. The next adapters should be Postgres, a NEAR wallet-signature verifier, a settlement contract, encrypted object storage, and the live NEAR Intents/1Click API.
+Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime uses Neon Postgres through `@neondatabase/serverless`; apply `migrations/001_initial.sql` first. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
 
 See `openapi.yaml` for the frontend contract.

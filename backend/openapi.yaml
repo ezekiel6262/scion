@@ -9,6 +9,10 @@ components:
     NearAccount: { type: apiKey, in: header, name: x-near-account, description: Development placeholder for a verified NEAR wallet session }
     ViewKey: { type: apiKey, in: header, name: x-view-key }
 paths:
+  /v1/auth/challenge:
+    post: { responses: { '201': { description: Five-minute NEAR wallet signing challenge } } }
+  /v1/auth/verify:
+    post: { responses: { '200': { description: One-hour bearer session } } }
   /health:
     get: { responses: { '200': { description: Healthy } } }
   /v1/strategies:
