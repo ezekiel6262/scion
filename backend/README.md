@@ -1,4 +1,4 @@
-# Veilbranch API
+# Scion API
 
 API-first backend for versioned private strategies and scoped access.
 

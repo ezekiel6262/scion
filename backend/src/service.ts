@@ -5,7 +5,7 @@ import { hash, id, signToken, verifyToken } from './crypto.ts';
 
 const publicVersion = (v: StrategyVersion) => ({ id:v.id, strategyId:v.strategyId, semver:v.semver, owner:v.owner, parentVersionId:v.parentVersionId, riskClass:v.risk.maxDrawdownBps<=500?'conservative':'balanced', horizonDays:v.horizonDays, manifestHash:v.manifestHash, createdAt:v.createdAt, restricted:['thesis','positions','rules'] });
 
-export class VeilbranchService {
+export class ScionService {
   private repo: Repository;
   private execution: ExecutionAdapter;
   private secret: string;

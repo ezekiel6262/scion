@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryRepository } from '../src/repository.ts';
 import { SimulatedNearIntentsAdapter } from '../src/adapters.ts';
-import { VeilbranchService } from '../src/service.ts';
+import { ScionService } from '../src/service.ts';
 
 test('Alice grants access, Bob forks and executes, then access is revoked', async () => {
   const repo = new MemoryRepository();
-  const service = new VeilbranchService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));
+  const service = new ScionService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));
   await service.seed();
   const publicView: any = await service.readVersion(undefined, 'ver_quiet_delta_130');
   assert.equal(publicView.thesis, undefined); assert.equal(publicView.positions, undefined);
@@ -22,7 +22,7 @@ test('Alice grants access, Bob forks and executes, then access is revoked', asyn
 });
 
 test('policy engine rejects disallowed assets and excessive slippage', () => {
-  const service = new VeilbranchService(new MemoryRepository(), new SimulatedNearIntentsAdapter(), 'test');
+  const service = new ScionService(new MemoryRepository(), new SimulatedNearIntentsAdapter(), 'test');
   const decision = service.evaluatePolicy({versionId:'v',requestedAllocationBps:1000,slippageBps:80,leverageBps:10000,assets:['BTC'],notionalMinor:100},{maxAllocationBps:800,maxSlippageBps:30,allowedAssets:['USDC'],maxLeverageBps:10000,dailyLossLimitBps:200,manualConfirmationAboveMinor:25000});
   assert.equal(decision.allowed, false); assert.deepEqual(decision.violations, ['assets_not_allowed:BTC','slippage_exceeds_limit']); assert.equal(decision.effectiveAllocationBps, 800);
 });

@@ -2,7 +2,7 @@
 
 ## Positioning
 
-Veilbranch is GitHub for investable strategies: a privacy-native network where people and agents publish, verify, sell, fork, and execute versioned strategies without surrendering custody or revealing the edge.
+Scion is GitHub for investable strategies: a privacy-native network where people and agents publish, verify, sell, fork, and execute versioned strategies without surrendering custody or revealing the edge.
 
 ## Users
 
@@ -40,7 +40,7 @@ Revenue splits at settlement: protocol fee, creator access revenue, upstream for
 
 ## Safety and custody
 
-Veilbranch never pools follower funds. Before any execution, the follower-side policy engine constrains allocation, asset allowlist, slippage, leverage, daily loss, strategy drawdown, venue, and confirmation threshold. A strategy proposes; the wallet owner authorizes.
+Scion never pools follower funds. Before any execution, the follower-side policy engine constrains allocation, asset allowlist, slippage, leverage, daily loss, strategy drawdown, venue, and confirmation threshold. A strategy proposes; the wallet owner authorizes.
 
 ## MVP acceptance criteria
 

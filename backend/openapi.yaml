@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Veilbranch API
+  title: Scion API
   version: 0.1.0
   description: API for private, executable, forkable investment strategies.
 servers: [{ url: http://localhost:8787 }]

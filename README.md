@@ -1,8 +1,8 @@
-# Veilbranch
+# Scion
 
 **Private strategies. Public lineage.**
 
-Veilbranch is a privacy-native social network and protocol for executable investment strategies on NEAR. Creators publish versioned strategy objects, sell scoped access, and earn when followers fork their work. Followers keep custody and execute with their own limits.
+Scion is a privacy-native social network and protocol for executable investment strategies on NEAR. Creators publish versioned strategy objects, sell scoped access, and earn when followers fork their work. Followers keep custody and execute with their own limits.
 
 ## Demo
 
