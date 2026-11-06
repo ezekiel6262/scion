@@ -28,6 +28,18 @@ npx serve dist
 
 Or open `dist/index.html` directly.
 
+## Backend
+
+The API-first backend lives in `backend/`. It implements strategy versions, scoped capabilities, field-level projection, forks and attribution, follower policy evaluation, simulated NEAR Intents receipts, revocation, and public lineage. It runs on Node.js 24 without installing dependencies:
+
+```powershell
+cd backend
+npm test
+npm start
+```
+
+The frontend contract is documented in `backend/openapi.yaml`. Persistent storage, wallet-signature verification, settlement contracts, and live NEAR Intents execution remain adapter boundaries rather than being falsely represented as production integrations.
+
 ## Project foundations
 
 See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DATA_MODEL.md](docs/DATA_MODEL.md), [docs/SCREEN_MAP.md](docs/SCREEN_MAP.md), and [docs/MILESTONES.md](docs/MILESTONES.md).
