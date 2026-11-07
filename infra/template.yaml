@@ -175,11 +175,11 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints: [aws/handler.ts]
-        Format: esm
+        Format: cjs
         Minify: true
         Target: es2022
         Sourcemap: true
-        OutExtension: ['.js=.mjs']
+        OutExtension: ['.js=.cjs']
 
   MigrationFunction:
     Type: AWS::Serverless::Function
@@ -193,11 +193,11 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints: [aws/migrate.ts]
-        Format: esm
+        Format: cjs
         Minify: true
         Target: es2022
         Sourcemap: true
-        OutExtension: ['.js=.mjs']
+        OutExtension: ['.js=.cjs']
 
   FrontendBucket:
     Type: AWS::S3::Bucket
