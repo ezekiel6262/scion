@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { authenticateDevice, restoredSession, type LiveSession } from '../core/device-auth';
-import { LiveApi, type CreateLiveStrategy, type LiveHealth, type LiveStrategy } from '../core/live-api';
+import { LiveApi, type CreateLiveStrategy, type LiveHealth, type LiveProfile, type LiveStrategy } from '../core/live-api';
+import { connectNear, disconnectNear, restoreNearWallet, type LiveSession } from '../core/near-wallet';
 
 type LiveState = {
   status: 'connecting' | 'live' | 'offline';
@@ -9,16 +9,22 @@ type LiveState = {
   error?: string;
   refreshedAt?: number;
   session?: LiveSession;
+  profile?: LiveProfile;
   publishing: boolean;
   refresh: () => Promise<void>;
+  connect: () => Promise<void>;
+  disconnect: () => Promise<void>;
+  saveProfile: (input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string})=>Promise<LiveProfile>;
   publish: (strategy: CreateLiveStrategy) => Promise<LiveStrategy>;
 };
 
 const LiveCtx = createContext<LiveState | null>(null);
+const SESSION='scion.near.session';
+const restoredSession=()=>{try{const value=JSON.parse(localStorage.getItem(SESSION)??'null') as LiveSession|null;return value&&Date.parse(value.expiresAt)>Date.now()+30000?value:undefined}catch{return undefined}};
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => new LiveApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), []);
-  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'>>({ status: 'connecting', strategies: [], session: restoredSession(), publishing: false });
+  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'>>({ status: 'connecting', strategies: [], session: restoredSession(), publishing: false });
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, status: current.refreshedAt ? current.status : 'connecting' }));
     try {
@@ -30,13 +36,19 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, [api]);
   useEffect(() => {
     void refresh();
+    void restoreNearWallet();
     const timer = window.setInterval(() => void refresh(), 60_000);
     return () => window.clearInterval(timer);
   }, [refresh]);
+  useEffect(()=>{if(!state.session)return;void api.me(state.session.token).then((me)=>setState((current)=>({...current,profile:me.profile}))).catch(()=>{localStorage.removeItem(SESSION);setState((current)=>({...current,session:undefined,profile:undefined}))});},[api,state.session?.token]);
+  const connect=useCallback(async()=>{const session=await connectNear(api);localStorage.setItem(SESSION,JSON.stringify(session));const me=await api.me(session.token);setState((current)=>({...current,session,profile:me.profile}));},[api]);
+  const disconnect=useCallback(async()=>{await disconnectNear();localStorage.removeItem(SESSION);setState((current)=>({...current,session:undefined,profile:undefined}));},[]);
+  const saveProfile=useCallback(async(input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string})=>{if(!state.session)throw new Error('Connect a NEAR wallet first.');const profile=await api.saveProfile(state.session.token,input);setState((current)=>({...current,profile}));return profile;},[api,state.session]);
   const publish = useCallback(async (strategy: CreateLiveStrategy) => {
     setState((current) => ({ ...current, publishing: true }));
     try {
-      const session = await authenticateDevice(api);
+      const session = state.session;
+      if (!session) throw new Error('Connect and verify a NEAR wallet before publishing.');
       const result = await api.createStrategy(session.token, strategy);
       await refresh();
       setState((current) => ({ ...current, session, publishing: false }));
@@ -45,8 +57,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       setState((current) => ({ ...current, publishing: false }));
       throw error;
     }
-  }, [api, refresh]);
-  return <LiveCtx.Provider value={{ ...state, refresh, publish }}>{children}</LiveCtx.Provider>;
+  }, [api, refresh, state.session]);
+  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile }}>{children}</LiveCtx.Provider>;
 }
 
 export function useLive() {

@@ -19,6 +19,7 @@ export type ExecutionReceipt = { id: string; executor: string; versionId: string
 export type AccessOffer = { id: string; issuer: string; versionId: string; scopes: Scope[]; expiresInSeconds: number; priceMinor: number; currency: 'USDC'; status: 'active' | 'revoked'; createdAt: string };
 export type AccessPurchase = { id: string; idempotencyKey: string; buyer: string; offerId: string; versionId: string; issuer: string; amountMinor: number; currency: 'USDC'; status: 'settled'; settlementRef: string; capabilityId: string; createdAt: string };
 export type LedgerEntry = { id: string; purchaseId: string; account: string; kind: 'creator_revenue' | 'upstream_royalty'; amountMinor: number; currency: 'USDC'; createdAt: string };
+export type Profile = { accountId: string; displayName: string; handle: string; bio: string; avatarUrl?: string; createdAt: string; updatedAt: string };
 
 export class DomainError extends Error {
   code: string;

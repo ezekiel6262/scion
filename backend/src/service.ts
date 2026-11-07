@@ -19,6 +19,15 @@ export class ScionService {
     version.manifestHash=hash(version); await this.repo.putStrategy(strategy); await this.repo.putVersion(version);
   }
   async listStrategies(){ return Promise.all((await this.repo.listStrategies()).map(async s=>({...s,latestVersion:publicVersion((await this.repo.getVersion(s.latestVersionId))!)}))); }
+  async profile(account:string){return await this.repo.getProfile(account);}
+  async saveProfile(actor:string,input:any){
+    const existing=await this.repo.getProfile(actor),now=this.now().toISOString();
+    const displayName=clean(input?.displayName,60),handle=clean(input?.handle,32).toLowerCase(),bio=clean(input?.bio??'',280),avatarUrl=input?.avatarUrl?clean(input.avatarUrl,500):undefined;
+    if(!displayName)throw new DomainError('invalid_display_name','Display name is required');
+    if(!/^[a-z0-9][a-z0-9_-]{1,31}$/.test(handle))throw new DomainError('invalid_handle','Handle must be 2-32 letters, numbers, underscores, or hyphens');
+    if(avatarUrl&&!/^https:\/\//.test(avatarUrl))throw new DomainError('invalid_avatar','Avatar URL must use HTTPS');
+    const profile={accountId:actor,displayName,handle,bio,avatarUrl,createdAt:existing?.createdAt??now,updatedAt:now};await this.repo.putProfile(profile);return profile;
+  }
   async createStrategy(actor:string,input:any){
     requireFields(input,['name','slug','thesis','positions','rules','risk','horizonDays']); const strategyId=id('strat'),versionId=id('ver');
     const version:StrategyVersion={id:versionId,strategyId,semver:'1.0.0',owner:actor,thesis:input.thesis,positions:input.positions,rules:input.rules,risk:input.risk,horizonDays:input.horizonDays,manifestHash:'',createdAt:this.now().toISOString()}; version.manifestHash=hash(version);
@@ -98,3 +107,4 @@ export class ScionService {
   private async validateCapability(actor:string,versionId:string,token:string){const raw=verifyToken(token,this.secret);if(!raw)throw new DomainError('invalid_capability','Capability signature is invalid',401);let payload:any;try{payload=JSON.parse(Buffer.from(raw,'base64url').toString())}catch{throw new DomainError('invalid_capability','Capability payload is invalid',401)} const cap=await this.repo.getCapability(payload.id);if(!cap||cap.tokenHash!==hash(token))throw new DomainError('invalid_capability','Capability is unknown',401);if(cap.subject!==actor)throw new DomainError('wrong_subject','Capability belongs to another account',403);if(cap.versionId!==versionId)throw new DomainError('wrong_resource','Capability does not cover this version',403);if(cap.status==='revoked')throw new DomainError('revoked','Capability was revoked',403);if(new Date(cap.expiresAt)<=this.now())throw new DomainError('expired','Capability expired',403);return cap;}
 }
 function requireFields(value:any,fields:string[]){if(!value||typeof value!=='object')throw new DomainError('invalid_body','JSON object required');const missing=fields.filter(f=>value[f]===undefined);if(missing.length)throw new DomainError('missing_fields',`Missing: ${missing.join(', ')}`);}
+function clean(value:unknown,max:number){return typeof value==='string'?value.trim().slice(0,max):'';}

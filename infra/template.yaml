@@ -34,9 +34,6 @@ Globals:
         DB_PASSWORD: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString:password}}'
         DB_SSL: 'true'
         SCION_SIGNING_SECRET: !Sub '{{resolve:secretsmanager:${SigningSecret}:SecretString:secret}}'
-    VpcConfig:
-      SecurityGroupIds: [!Ref LambdaSecurityGroup]
-      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
 
 Resources:
   Vpc:
@@ -158,6 +155,9 @@ Resources:
       Handler: aws/handler.handler
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
       Events:
         ApiRoot:
           Type: HttpApi
@@ -189,10 +189,44 @@ Resources:
       Timeout: 120
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints: [aws/migrate.ts]
+        Format: cjs
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        OutExtension: ['.js=.cjs']
+
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend
+      Handler: aws/auth-handler.handler
+      Environment:
+        Variables:
+          SCION_AUTH_RECIPIENT: d30lp8j3k8uetx.cloudfront.net
+      Events:
+        AuthChallenge:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/auth/challenge
+            Method: ANY
+        AuthVerify:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/auth/verify
+            Method: ANY
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [aws/auth-handler.ts]
         Format: cjs
         Minify: true
         Target: es2022

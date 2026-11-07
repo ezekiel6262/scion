@@ -1,4 +1,4 @@
-import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdge, LedgerEntry, Strategy, StrategyVersion } from './domain.ts';
+import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdge, LedgerEntry, Profile, Strategy, StrategyVersion } from './domain.ts';
 import type { Repository } from './repository.ts';
 import type { AuthChallenge, AuthStore } from './auth.ts';
 
@@ -37,6 +37,8 @@ export class PostgresRepository implements Repository {
     try{await client.query('BEGIN');const inserted=await client.query(`INSERT INTO scion_private.access_purchases (id,idempotency_key,buyer_account,offer_id,version_id,issuer_account,amount_minor,currency,status,settlement_ref,capability_id,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (buyer_account,idempotency_key) DO NOTHING RETURNING id`,[p.id,p.idempotencyKey,p.buyer,p.offerId,p.versionId,p.issuer,p.amountMinor,p.currency,p.status,p.settlementRef,p.capabilityId,p.createdAt]);if(!inserted.rows.length){await client.query('ROLLBACK');return;}await client.query(`INSERT INTO scion_private.capabilities (id,subject_account,issuer_account,version_id,scopes,expires_at,status,token_hash,price_minor,currency,created_at,revoked_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[c.id,c.subject,c.issuer,c.versionId,c.scopes,c.expiresAt,c.status,c.tokenHash,c.priceMinor,c.currency,c.createdAt,c.revokedAt??null]);for(const e of entries)await client.query(`INSERT INTO scion_private.ledger_entries (id,purchase_id,account_id,kind,amount_minor,currency,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,[e.id,e.purchaseId,e.account,e.kind,e.amountMinor,e.currency,e.createdAt]);await client.query('COMMIT');}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   }
   async listLedgerEntries(account:string){const r=await this.db.query('SELECT * FROM scion_private.ledger_entries WHERE account_id=$1 ORDER BY created_at DESC,id DESC',[account]);return r.rows.map(toLedgerEntry);}
+  async getProfile(account:string){const r=await this.db.query("SELECT payload FROM scion_private.product_objects WHERE id=$1 AND object_type='profile'",[`profile:${account}`]);return r.rows[0]?.payload as Profile|undefined;}
+  async putProfile(value:Profile){await this.db.query(`INSERT INTO scion_private.product_objects (id,object_type,owner_account,visibility,payload,created_at,updated_at) VALUES ($1,'profile',$2,'public',$3::jsonb,$4,$5) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=EXCLUDED.updated_at`,[`profile:${value.accountId}`,value.accountId,JSON.stringify(value),value.createdAt,value.updatedAt]);}
 }
 
 export class PostgresAuthStore implements AuthStore {

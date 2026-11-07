@@ -14,11 +14,12 @@
     "db:migrate": "node --experimental-strip-types scripts/migrate.ts"
   },
   "dependencies": {
+    "esbuild": "^0.28.2",
+    "near-api-js": "^7.4.0",
     "pg": "8.23.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",
-    "@types/pg": "8.23.1",
-    "esbuild": "^0.28.2"
+    "@types/pg": "8.23.1"
   }
 }

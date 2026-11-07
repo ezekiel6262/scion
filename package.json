@@ -18,6 +18,9 @@
     "model": "esbuild scripts/rerun-model.ts --bundle --platform=node --format=esm --outfile=.test/model.mjs --log-level=warning && node .test/model.mjs"
   },
   "dependencies": {
+    "@fastnear/intents": "^2.5.0",
+    "@hot-labs/near-connect": "^0.12.0",
+    "buffer": "^6.0.3",
     "pg": "8.23.1",
     "react": "18.3.1",
     "react-dom": "18.3.1"

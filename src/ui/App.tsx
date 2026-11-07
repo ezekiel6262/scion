@@ -9,7 +9,7 @@ import { Trade } from './Trade';
 import { Explore, Home } from './Discover';
 import { ExecuteSheet } from './ExecuteSheet';
 import { Lineage } from './Lineage';
-import { Earnings, Keys, Profile, Security } from './Pages';
+import { AccountPage, Earnings, Keys, Profile, Security } from './Pages';
 import { StrategyPage } from './Strategy';
 import { Plays } from './Plays';
 import { Duels } from './Social';
@@ -131,7 +131,6 @@ export function App() {
   const s = useStore();
   const live = useLive();
   const [route, setRoute] = useState<Route>({ name: 'home' });
-  const [demo, setDemo] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [more, setMore] = useState(false);
   const [exec, setExec] = useState<{ sid: string; orders: PlannedOrder[]; slippage: number; manual: boolean } | null>(null);
@@ -185,17 +184,15 @@ export function App() {
               <span className="live-dot" />
               <span>{live.status === 'live' ? `Live API · ${live.strategies.length} persisted` : live.status === 'offline' ? 'API offline · retry' : 'Connecting to API'}</span>
             </button>
-            <div className="clockbox"><span><Icon n="clock" s={13} /> {date(s.clock)} UTC</span><button className="btn sm" onClick={() => act(() => engine.advanceDay())} title="Simulated market moves one day">+24h</button></div>
             <div className="account">
               <div className="account-row">
                 {u ? <Av u={u} size="sm" /> : <span className="av sm"><Icon n="user" s={13} /></span>}
-                <button className="linkish" style={{ minWidth: 0, flex: 1 }} onClick={() => u && go({ name: 'profile', id: u.id })} disabled={!u}>
-                  <div className="strong small">{u ? u.name : 'No wallet'}</div>
-                  <div className="small faint">{u ? `${s.balances[u.id].toFixed(2)} USDC` : 'Browsing as the public'}</div>
+                <button className="linkish" style={{ minWidth: 0, flex: 1 }} onClick={() => go({name:'account'})}>
+                  <div className="strong small">{live.profile?.displayName ?? live.session?.accountId ?? 'Connect NEAR wallet'}</div>
+                  <div className="small faint">{live.session ? 'Verified mainnet account' : 'Required to publish and execute'}</div>
                 </button>
                 {bell}
               </div>
-              <PersonaSwitch />
             </div>
           </div>
         </aside>
@@ -206,10 +203,9 @@ export function App() {
             <button className="btn sm" onClick={() => go({ name: 'studio' })} aria-label="New strategy"><Icon n="plus" s={14} /></button>
             <button className="btn sm" onClick={() => setMore(true)} aria-label="All pages"><Icon n="rail" s={14} /> More</button>
             {bell}
-            <PersonaSwitch />
           </header>
           <main id="main">
-            {route.name === 'home' && <Home onDemo={() => setDemo(true)} />}
+            {route.name === 'home' && <Home />}
             {route.name === 'explore' && <Explore />}
             {route.name === 'lineage' && <Lineage />}
             {route.name === 'studio' && <Studio key="new" />}
@@ -222,6 +218,7 @@ export function App() {
             {route.name === 'keys' && <Keys />}
             {route.name === 'earnings' && <Earnings />}
             {route.name === 'security' && <Security />}
+            {route.name === 'account' && <AccountPage />}
             {route.name === 'strategy' && <StrategyPage id={route.id} tab={route.tab} />}
             {route.name === 'fork' && <ForkFlow parentId={route.id} />}
             {route.name === 'profile' && <Profile id={route.id} />}
@@ -245,12 +242,10 @@ export function App() {
           <div className="sheet" role="dialog" aria-label="All pages">
             <div className="sheet-head"><h2 className="h2">Scion</h2><button className="btn ghost sm" onClick={() => setMore(false)} aria-label="Close"><Icon n="x" /></button></div>
             <div className="sheet-body">{nav.map(([n, l, ic]) => <button key={n} className="navitem" onClick={() => { setMore(false); go({ name: n } as Route); }}><Icon n={ic} s={17} /> {l}</button>)}
-              <div className="clockbox" style={{ marginTop: 14 }}><span>{date(s.clock)} UTC</span><button className="btn sm" onClick={() => act(() => engine.advanceDay())}>+24h</button></div>
             </div>
           </div>
         </div>
       )}
-      <Demo go={go} open={demo} setOpen={setDemo} />
       {exec && <ExecuteSheet sid={exec.sid} orders={exec.orders} slippage={exec.slippage} manual={exec.manual} onClose={() => setExec(null)} />}
       <Toasts />
     </UiCtx.Provider>

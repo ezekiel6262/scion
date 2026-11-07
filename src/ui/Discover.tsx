@@ -93,7 +93,7 @@ export function StrategyCard({ st }: { st: Strategy }) {
   );
 }
 
-export function Home({ onDemo }: { onDemo: () => void }) {
+export function Home() {
   const s = useStore();
   const { go } = useUi();
   const [tab, setTab] = useState<'all' | 'following' | 'agents'>('all');
@@ -112,7 +112,7 @@ export function Home({ onDemo }: { onDemo: () => void }) {
           <p className="lede">Follow people and agents by verified results. Unlock exactly the part of a strategy you need. Fork it under your own limits, and the original author earns from your version.</p>
         </div>
         <div className="row">
-          <button className="btn lg primary" onClick={onDemo}><Icon n="play" s={14} /> Start the demo</button>
+          <button className="btn lg primary" onClick={() => go({ name: 'account' })}><Icon n="wallet" s={14} /> Connect NEAR wallet</button>
           <button className="btn lg" onClick={() => go({ name: 'explore' })}>Explore strategies</button>
         </div>
       </div>
@@ -174,8 +174,8 @@ export function Home({ onDemo }: { onDemo: () => void }) {
             ))}</div>
           </div>
           <div className="well small muted">
-            <p className="h3" style={{ color: 'var(--fg)', marginBottom: 6 }}>What this demo runs on</p>
-            Encryption, signed keys, receipts and attestations are real cryptography in your browser. NEAR Intents settlement, wallets, USDC and prices are simulated and labeled.
+            <p className="h3" style={{ color: 'var(--fg)', marginBottom: 6 }}>Live production foundation</p>
+            Wallet ownership is verified with NEP-413, profiles and published strategies persist in Scion’s production database, and swaps require approval from your NEAR mainnet wallet.
           </div>
         </aside>
       </div>
@@ -208,7 +208,7 @@ export function Explore() {
       </div>
       <section className="box live-network" aria-label="Live Scion network">
         <div className="box-head">
-          <div><h2 className="h3">Live network</h2><p className="small muted">Persisted in Scion’s private production database, separate from the guided browser demo.</p></div>
+          <div><h2 className="h3">Live network</h2><p className="small muted">Persisted in Scion’s private production database under verified NEAR accounts.</p></div>
           <span className={`pill ${live.status === 'live' ? 'gain' : 'solid'}`}><span className="live-dot" /> {live.status}</span>
         </div>
         {live.status === 'offline' ? <div className="small muted">{live.error} <button className="linkish strong" onClick={() => void live.refresh()}>Retry</button></div>

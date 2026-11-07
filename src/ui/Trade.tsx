@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { engine, personaUser } from '../core/engine';
 import { ASSETS, CLASS_LABEL } from '../core/policy';
 import { act, date, Icon, usd, useStore, useUi } from './bits';
+import { LiveNearSwap } from './LiveSwap';
+import { useLive } from './live';
 
 type Q = Awaited<ReturnType<typeof engine.swapQuote>>;
 const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: n < 1 ? 6 : n < 100 ? 4 : 2 });
@@ -9,6 +11,7 @@ const price = (n: number) => (n < 0.1 ? `$${n.toFixed(5)}` : `$${n.toLocaleStrin
 
 export function Trade() {
   const s = useStore();
+  const live = useLive();
   const { go } = useUi();
   const me = personaUser(s.persona);
   const wallet = me ? s.portfolios[me] : undefined;
@@ -26,7 +29,7 @@ export function Trade() {
   }, [mode]);
   useEffect(() => setQuote(null), [from, to, amount, slip, s.clock]);
 
-  if (!me) return <div className="view narrow empty"><p className="h2">Choose a wallet to trade</p><p>Switch to Alice or Bob in the sidebar.</p></div>;
+  if (!me) return <div className="view narrow"><LiveNearSwap /></div>;
   if (!wallet) {
     return (
       <div className="view narrow">
@@ -49,6 +52,7 @@ export function Trade() {
         <div><h1 className="title">Trade</h1><p className="muted">Buy tokens on NEAR, or across chains through NEAR Intents. Then publish what you hold as a strategy.</p></div>
         <span className="pill dash">Simulated solver. Live 1Click quotes in M2</span>
       </div>
+      {live.session && <LiveNearSwap />}
       <div className="repo">
         <div style={{ maxWidth: 560 }}>
           <div className="seg2" role="group" aria-label="Where to trade" style={{ marginBottom: 14 }}>

@@ -29,6 +29,7 @@ export type CreateLiveStrategy = {
   horizonDays: number;
   royaltyBps: number;
 };
+export type LiveProfile = { accountId:string; displayName:string; handle:string; bio:string; avatarUrl?:string; createdAt:string; updatedAt:string };
 
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };
@@ -49,17 +50,20 @@ export class LiveApi {
   health() { return this.request<LiveHealth>('/health'); }
   async strategies() { return (await this.request<ApiEnvelope<LiveStrategy[]>>('/v1/strategies')).data; }
 
-  async authChallenge(accountId: string, publicKey: string) {
-    return (await this.request<ApiEnvelope<{ id: string; message: string; expiresAt: string }>>('/v1/auth/challenge', {
-      method: 'POST', body: JSON.stringify({ accountId, publicKey }),
+  async authChallenge() {
+    return (await this.request<ApiEnvelope<{ challengeId:string; message:string; nonce:string; recipient:string; expiresAt:string }>>('/v1/auth/challenge', {
+      method: 'POST', body: '{}',
     })).data;
   }
 
-  async authVerify(challengeId: string, signature: string) {
+  async authVerify(input: { challengeId:string; accountId:string; publicKey:string; signature:string }) {
     return (await this.request<ApiEnvelope<{ token: string; accountId: string; expiresAt: string }>>('/v1/auth/verify', {
-      method: 'POST', body: JSON.stringify({ challengeId, signature }),
+      method: 'POST', body: JSON.stringify(input),
     })).data;
   }
+
+  async me(token:string){return (await this.request<ApiEnvelope<{accountId:string;profile?:LiveProfile}>>('/v1/me',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async saveProfile(token:string,input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string}){return (await this.request<ApiEnvelope<LiveProfile>>('/v1/profile',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async createStrategy(token: string, strategy: CreateLiveStrategy) {
     return (await this.request<ApiEnvelope<{ strategy: LiveStrategy; version: LiveStrategy['latestVersion'] }>>('/v1/strategies', {

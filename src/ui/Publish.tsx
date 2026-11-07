@@ -13,7 +13,7 @@ export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
   const s = useStore();
   const { go, execute } = useUi();
   const live = useLive();
-  const me = personaUser(s.persona);
+  const me = personaUser(s.persona) ?? (live.session ? 'alice' : null);
   const wallet = me ? s.portfolios[me] : undefined;
   const [step, setStep] = useState(0);
   const [d, setD] = useState<Draft>(() => (fromPortfolio ? engine.portfolioDraft(aliceDraft()) : null) ?? aliceDraft());
@@ -49,7 +49,8 @@ export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
     return { heldValue, buys, total, holdings, problems };
   }, [rows, reserve, fund, s.prices, wallet]);
 
-  if (!me) return <div className="view narrow empty"><p className="h2">Choose a wallet to publish</p><p>Switch to Alice or Bob in the sidebar. Strategies are sealed with your wallet’s keys.</p></div>;
+  if (!live.session) return <div className="view narrow empty"><p className="h2">Connect a real NEAR wallet to publish</p><p>Your strategy will be owned by the verified NEAR account that signs in.</p><button className="btn primary lg" onClick={()=>act(()=>live.connect())}><Icon n="wallet" s={16}/> Connect NEAR wallet</button></div>;
+  if (!live.profile) return <div className="view narrow empty"><p className="h2">Create your Scion profile first</p><p>Your NEAR wallet is verified. Add a public name and handle before publishing.</p><button className="btn primary lg" onClick={()=>go({name:'account'})}>Create profile</button></div>;
   const set = (i: number, patch: Partial<Row>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const steps = ['Story', 'Positions', 'Keys', 'Review'];
   const okStep = [d.title.trim().length > 0, calc.problems.length === 0, d.visibility === 'public' || d.keys.length > 0, true];
@@ -116,7 +117,7 @@ export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
           {step === 1 && <>
             <div className="banner" style={{ marginBottom: 0 }}>
               {wallet ? (
-                <span><b>{s.users[me].handle}</b> connected, read-only. {usd(engine.portfolioValue(wallet), 0)} in tokens, {usd(engine.cashIn(me))} in USDC.</span>
+                <span><b>{s.users[me!].handle}</b> connected, read-only. {usd(engine.portfolioValue(wallet), 0)} in tokens, {usd(engine.cashIn(me!))} in USDC.</span>
               ) : (
                 <span><b>Already hold tokens?</b> Connect your wallet to put them in this strategy without selling.</span>
               )}

@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { engine, personaUser } from '../core/engine';
 import { spec } from '../core/policy';
-import { Av, date, Icon, left, Ret, SECTION_LABEL, usdc, useStore, useUi, Verified } from './bits';
+import { act, Av, date, Icon, left, Ret, SECTION_LABEL, usdc, useStore, useUi, Verified } from './bits';
 import { StrategyCard } from './Discover';
 import { PlayCard } from './Plays';
 import { VerifyCard } from './Trust';
 import { RecordPill } from './Sentiment';
+import { useLive } from './live';
+
+export function AccountPage(){
+  const live=useLive(),[form,setForm]=useState({displayName:live.profile?.displayName??'',handle:live.profile?.handle??'',bio:live.profile?.bio??''}),[busy,setBusy]=useState(false);
+  if(!live.session)return <div className="view narrow"><div className="pagehead"><div><h1 className="title">Your Scion account</h1><p className="muted">Connect a real NEAR mainnet wallet. Scion asks for a gas-free NEP-413 signature and never receives your private key.</p></div></div><div className="box empty"><p className="h2">Connect your NEAR wallet</p><p>Create your profile, publish strategies under your account, and approve every future execution in your wallet.</p><button className="btn primary lg" onClick={()=>act(()=>live.connect())}><Icon n="wallet" s={16}/> Connect NEAR wallet</button></div></div>;
+  const save=async()=>{setBusy(true);await act(()=>live.saveProfile(form));setBusy(false);};
+  return <div className="view narrow"><div className="pagehead"><div><h1 className="title">Your Scion account</h1><p className="muted">Authenticated as {live.session.accountId}</p></div><button className="btn" onClick={()=>act(()=>live.disconnect())}>Disconnect</button></div><div className="box"><div className="box-head"><h2 className="h3">Public profile</h2></div><div className="box-body" style={{display:'grid',gap:14}}><label className="field"><span>Display name</span><input className="input" value={form.displayName} onChange={(e)=>setForm({...form,displayName:e.target.value})}/></label><label className="field"><span>Handle</span><input className="input" value={form.handle} onChange={(e)=>setForm({...form,handle:e.target.value})} placeholder="your-handle"/></label><label className="field"><span>Bio</span><textarea className="input" value={form.bio} onChange={(e)=>setForm({...form,bio:e.target.value})} maxLength={280}/></label><button className="btn primary" disabled={busy||!form.displayName.trim()||!form.handle.trim()} onClick={save}>{busy?'Saving…':live.profile?'Save profile':'Create profile'}</button></div></div></div>;
+}
 
 const needWallet = (what: string) => (
   <div className="view narrow empty"><p className="h2">Choose a wallet</p><p>Switch to Alice or Bob in the sidebar to see {what}.</p></div>
