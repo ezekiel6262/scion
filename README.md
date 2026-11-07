@@ -10,7 +10,7 @@ Think of each strategy as a living document you can copy and improve:
 - Each section is sealed separately.
 - Public profiles show attested performance without leaking positions.
 
-Read the full product spec, threat model, architecture, data model, screen map and milestones in [`docs/SPEC.md`](docs/SPEC.md).
+Read the full product spec, threat model, architecture, data model, screen map and milestones in [`docs/SPEC.md`](docs/SPEC.md). The AWS deployment foundation is documented in [`infra/README.md`](infra/README.md).
 
 ## Run it
 

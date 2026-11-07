@@ -4,15 +4,16 @@ API-first backend for versioned private strategies and scoped access.
 
 ## Run
 
-Requires Node.js 24+ and no package installation.
+Requires Node.js 24+.
 
 ```powershell
 cd backend
+npm install
 npm test
 npm start
 ```
 
-For hosted Supabase, copy the **Transaction pooler** connection string (port `6543`) into `DATABASE_URL`, link the project with the Supabase CLI, then run `npm run db:push`. For local Supabase, use `npm run supabase:start` followed by `npm run db:reset`.
+For local PostgreSQL, set `DATABASE_URL` and run `npm run db:migrate`. In AWS, the SAM stack supplies isolated RDS connection settings and exposes a migration Lambda that `infra/deploy.ps1` invokes after each deployment.
 
 The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/auth/verify` to exchange a NEAR ed25519 wallet signature for a one-hour bearer session. The `x-near-account` development header is disabled in production unless `SCION_ALLOW_DEV_HEADER=true`.
 
@@ -37,7 +38,7 @@ The API listens on `http://localhost:8787`. Use `/v1/auth/challenge` and `/v1/au
 
 ## Production boundaries
 
-Without `DATABASE_URL`, local development uses the in-memory repository. With `DATABASE_URL`, the runtime connects to Supabase Postgres using a one-connection `pg` pool suited to Supavisor transaction mode. Confidential protocol tables live in the non-exposed `scion_private` schema with RLS enabled and no Data API grants. Purchases use provider and database idempotency; the purchase, capability, and balanced revenue entries commit in one short transaction. The current USDC settlement adapter is deterministic and simulated. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
+Without database settings, local development uses the in-memory repository. With `DATABASE_URL` or the AWS `DB_*` settings, the runtime connects to PostgreSQL through a small Lambda-safe pool. Confidential protocol tables live in the server-only `scion_private` schema. On AWS, RDS is not public and accepts traffic only from the Lambda security group. Purchases use provider and database idempotency; the purchase, capability, and balanced revenue entries commit in one short transaction. The current USDC settlement adapter is deterministic and simulated. Settlement contracts, encrypted object storage, and the live NEAR Intents/1Click API remain adapter boundaries.
 
 Execution is deliberately two-step when the follower policy requires confirmation: call `/v1/executions/preview`, show the decision to the wallet owner, then send that decision's `policyHash` as `confirmedPolicyHash` to `/v1/executions`. Any change to the proposal or policy produces a different hash and requires a fresh confirmation.
 

@@ -170,7 +170,7 @@ Compliance note: paid calls on tokenized stocks can be regulated investment advi
 | Capabilities | ECDSA P-256, gateway key | same, gateway key held in TEE |
 | Release | ECDH P-256 plus AES-GCM box to holder | same |
 | Gateway | in-browser class | TEE service with code attestation |
-| Storage | in-memory | Supabase (ciphertext, grants, ledger, commitments) |
+| Storage | in-memory | AWS RDS PostgreSQL (ciphertext, grants, ledger, commitments) |
 | Execution | SimulatedIntents with a signing solver | OneClickAdapter to the NEAR Intents 1Click API |
 | Payments | in-memory USDC ledger | USDC transfer via intents, or a NEAR payment contract |
 | Identity | three personas | NEAR wallet (account plus ECDH key derived per device) |
@@ -193,7 +193,7 @@ Source of truth: [`src/core/types.ts`](../src/core/types.ts).
 | RiskPolicy | follower limits (section 2) |
 | Book (gateway private) | cash, units per asset, capital, NAV history |
 
-Supabase mapping for M2: `strategies`, `strategy_versions`, `sealed_sections`, `grants`, `gateway_events`, `commitments`, `attestations`, `ledger`, `follows`, `comments`. Row-level security keeps grants and ledger rows visible only to their parties.
+AWS mapping for M2: private RDS PostgreSQL stores `strategies`, `strategy_versions`, `sealed_sections`, `grants`, `gateway_events`, `commitments`, `attestations`, `ledger`, `follows`, and `comments`. The database is isolated in private subnets and is reachable only from the Lambda security group; authorization remains enforced by the API and repository layer.
 
 ## 6. Screen map
 
@@ -224,7 +224,7 @@ Planned for later milestones:
 | Milestone | Scope | Exit check |
 |---|---|---|
 | **M1 vertical slice** (this repo) | Protocol core, 5 live key classes, gateway, fork, risk engine, royalties, attestation, lineage, full UI, 22-check test | `npm test` passes; the demo runs end to end in the browser |
-| **M2 real rails** | OneClickAdapter live quotes; NEAR wallet login; Supabase persistence; Next.js 14 route-handler gateway; versioned edits with DEK rotation; bucketed win rate | Live 1Click quote shown in the execute sheet; strategies persist across sessions |
+| **M2 real rails** | OneClickAdapter live quotes; NEAR wallet login; AWS RDS persistence; Lambda/API Gateway; versioned edits with DEK rotation; bucketed win rate | Live 1Click quote shown in the execute sheet; strategies persist across sessions |
 | **M3 agents and rooms** | Agent buyer (Kestrel) purchases keys from its own balance, scores strategies, forks within owner policy; Mirror Key; Room Code chat | Agent Economy track demo |
 | **M4 infra** | TEE gateway; `@scion/sdk` (`createStrategy`, `buyKey`, `release`, `fork`, `execute`); embeddable cards; API Key | A third-party page embeds a verified card and key purchase |
 

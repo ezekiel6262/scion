@@ -1,0 +1,308 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Scion MVP - private frontend, Lambda API, and isolated RDS PostgreSQL
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging]
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 25
+  BillingAlertEmail:
+    Type: String
+    Default: ''
+
+Conditions:
+  HasBillingAlertEmail: !Not [!Equals [!Ref BillingAlertEmail, '']]
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Architectures: [arm64]
+    Timeout: 30
+    MemorySize: 512
+    Tracing: Active
+    Environment:
+      Variables:
+        NODE_ENV: production
+        DB_HOST: !GetAtt Database.Endpoint.Address
+        DB_PORT: !GetAtt Database.Endpoint.Port
+        DB_NAME: scion
+        DB_USER: scion_admin
+        DB_PASSWORD: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString:password}}'
+        DB_SSL: 'true'
+        SCION_SIGNING_SECRET: !Sub '{{resolve:secretsmanager:${SigningSecret}:SecretString:secret}}'
+    VpcConfig:
+      SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.42.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{Key: Name, Value: !Sub 'scion-${Environment}'}]
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.42.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.42.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Scion Lambda egress
+      VpcId: !Ref Vpc
+      SecurityGroupEgress: []
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: PostgreSQL from Scion Lambda only
+      VpcId: !Ref Vpc
+      SecurityGroupEgress: []
+
+  DatabaseIngressFromLambda:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref DatabaseSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  LambdaEgressToDatabase:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref LambdaSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Isolated subnets for Scion
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Scion RDS master credentials
+      GenerateSecretString:
+        SecretStringTemplate: '{"username":"scion_admin"}'
+        GenerateStringKey: password
+        PasswordLength: 40
+        ExcludePunctuation: true
+  SigningSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Scion session and capability signing secret
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: secret
+        PasswordLength: 64
+        ExcludePunctuation: true
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub 'scion-${Environment}'
+      Engine: postgres
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 20
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: scion
+      MasterUsername: scion_admin
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString:password}}'
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VPCSecurityGroups: [!Ref DatabaseSecurityGroup]
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 1
+      DeletionProtection: false
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+
+  ScionApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowHeaders: [authorization, content-type, idempotency-key, x-near-account, x-view-key]
+        AllowMethods: [GET, POST, OPTIONS]
+        MaxAge: 86400
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend
+      Handler: aws/handler.handler
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+      Events:
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api
+            Method: ANY
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: '/api/{proxy+}'
+            Method: ANY
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [aws/handler.ts]
+        Format: esm
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        OutExtension: ['.js=.mjs']
+
+  MigrationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend
+      Handler: aws/migrate.handler
+      Timeout: 120
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [aws/migrate.ts]
+        Format: esm
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        OutExtension: ['.js=.mjs']
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      VersioningConfiguration: {Status: Enabled}
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'scion-${Environment}-s3'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Origins:
+          - Id: frontend
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref FrontendOriginAccessControl
+            S3OriginConfig: {OriginAccessIdentity: ''}
+          - Id: api
+            DomainName: !Sub '${ScionApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              HTTPSPort: 443
+              OriginSSLProtocols: [TLSv1.2]
+        DefaultCacheBehavior:
+          TargetOriginId: frontend
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+        CacheBehaviors:
+          - PathPattern: /api/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+            Compress: true
+        CustomErrorResponses:
+          - {ErrorCode: 403, ResponseCode: 200, ResponsePagePath: /index.html, ErrorCachingMinTTL: 0}
+          - {ErrorCode: 404, ResponseCode: 200, ResponsePagePath: /index.html, ErrorCachingMinTTL: 0}
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal: {Service: cloudfront.amazonaws.com}
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}'
+
+  CostBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasBillingAlertEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub 'scion-${Environment}-monthly'
+        BudgetLimit: {Amount: !Ref MonthlyBudgetUsd, Unit: USD}
+        BudgetType: COST
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+          Subscribers:
+            - {SubscriptionType: EMAIL, Address: !Ref BillingAlertEmail}
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+          Subscribers:
+            - {SubscriptionType: EMAIL, Address: !Ref BillingAlertEmail}
+
+Outputs:
+  SiteUrl: {Value: !Sub 'https://${FrontendDistribution.DomainName}'}
+  ApiUrl: {Value: !Sub 'https://${FrontendDistribution.DomainName}/api'}
+  FrontendBucketName: {Value: !Ref FrontendBucket}
+  DistributionId: {Value: !Ref FrontendDistribution}
+  MigrationFunctionName: {Value: !Ref MigrationFunction}
+  DatabaseEndpoint: {Value: !GetAtt Database.Endpoint.Address}

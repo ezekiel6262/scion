@@ -1,1 +1,0 @@
--- Intentionally empty. Scion's deterministic demo seed is created by the API service.

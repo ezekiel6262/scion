@@ -11,16 +11,14 @@
     "start": "node --experimental-strip-types src/server.ts",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "check": "node --experimental-strip-types --check src/server.ts",
-    "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop",
-    "db:reset": "supabase db reset",
-    "db:push": "supabase db push --remote --yes"
+    "db:migrate": "node --experimental-strip-types scripts/migrate.ts"
   },
   "dependencies": {
     "pg": "8.23.1"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
     "@types/pg": "8.23.1",
-    "supabase": "3.0.0"
+    "esbuild": "^0.28.2"
   }
 }

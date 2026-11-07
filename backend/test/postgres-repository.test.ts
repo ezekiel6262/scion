@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PostgresRepository } from '../src/postgres-repository.ts';
 
-test('Supabase repository only queries the private schema with parameters',async()=>{
+test('Postgres repository only queries the private schema with parameters',async()=>{
   const calls:{text:string;values?:unknown[]}[]=[];
   const db={query:async(text:string,values?:unknown[])=>{calls.push({text,values});return {rows:[]};}};
   const repo=new PostgresRepository(db);

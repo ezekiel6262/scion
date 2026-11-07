@@ -1,0 +1,15 @@
+version = 0.1
+
+[default.build.parameters]
+template_file = "template.yaml"
+parallel = true
+
+[default.deploy.parameters]
+stack_name = "scion-production"
+resolve_s3 = true
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+fail_on_empty_changeset = false
+parameter_overrides = "Environment=production MonthlyBudgetUsd=25"
+tags = "Project=scion Environment=production"
