@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LiveApi, type CreateLiveStrategy, type LiveBalances, type LiveHealth, type LiveProfile, type LiveStrategy } from '../core/live-api';
+import { LiveApi, type CreateLiveStrategy, type LiveBalances, type LiveExecution, type LiveHealth, type LiveProfile, type LiveStrategy, type LiveStrategyDetail } from '../core/live-api';
 import { connectNear, disconnectNear, restoreNearWallet, type LiveSession } from '../core/near-wallet';
 
 type LiveState = {
@@ -19,6 +19,9 @@ type LiveState = {
   saveProfile: (input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string})=>Promise<LiveProfile>;
   refreshBalances:()=>Promise<void>;
   publish: (strategy: CreateLiveStrategy) => Promise<LiveStrategy>;
+  loadStrategy:(id:string)=>Promise<LiveStrategyDetail>;
+  updateStrategy:(id:string,input:Partial<CreateLiveStrategy>)=>Promise<LiveStrategy>;
+  recordExecution:(input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn?:string;amountOut?:string})=>Promise<LiveExecution>;
 };
 
 const LiveCtx = createContext<LiveState | null>(null);
@@ -27,7 +30,7 @@ const restoredSession=()=>{try{const value=JSON.parse(localStorage.getItem(SESSI
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => new LiveApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), []);
-  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'refreshBalances'>>({ status: 'connecting', strategies: [], session: restoredSession(), publishing: false, balancesLoading:false });
+  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'>>({ status: 'connecting', strategies: [], session: restoredSession(), publishing: false, balancesLoading:false });
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, status: current.refreshedAt ? current.status : 'connecting' }));
     try {
@@ -63,7 +66,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, [api, refresh, state.session]);
-  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile, refreshBalances }}>{children}</LiveCtx.Provider>;
+  const loadStrategy=useCallback((id:string)=>api.strategy(id,state.session?.token),[api,state.session]);
+  const updateStrategy=useCallback(async(id:string,input:Partial<CreateLiveStrategy>)=>{if(!state.session)throw new Error('Connect your wallet first.');const result=await api.updateStrategy(state.session.token,id,input);await refresh();return {...result.strategy,latestVersion:result.version};},[api,refresh,state.session]);
+  const recordExecution=useCallback(async(input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn?:string;amountOut?:string})=>{if(!state.session)throw new Error('Connect your wallet first.');return api.recordExecution(state.session.token,input);},[api,state.session]);
+  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile, refreshBalances, loadStrategy, updateStrategy, recordExecution }}>{children}</LiveCtx.Provider>;
 }
 
 export function useLive() {

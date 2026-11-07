@@ -10,9 +10,12 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     if(request.method==='POST'&&path==='/v1/auth/challenge'){const b=await request.json() as any;return json({data:await auth.challenge(b.accountId,b.publicKey)},201,requestId);}
     if(request.method==='POST'&&path==='/v1/auth/verify'){const b=await request.json() as any;return json({data:await auth.verify(b.challengeId,b.signature)},200,requestId);}
     if(request.method==='GET'&&path==='/v1/strategies')return json({data:await service.listStrategies()},200,requestId);
+    if(request.method==='GET'&&path==='/v1/my/strategies')return json({data:await service.myStrategies(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/me')return json({data:{accountId:requireActor(actor),profile:await service.profile(requireActor(actor))}},200,requestId);
     if(request.method==='POST'&&path==='/v1/profile')return json({data:await service.saveProfile(requireActor(actor),await request.json())},200,requestId);
     if(request.method==='POST'&&path==='/v1/strategies')return json({data:await service.createStrategy(requireActor(actor),await request.json())},201,requestId);
+    let detail=path.match(/^\/v1\/strategies\/([^/]+)$/);if(request.method==='GET'&&detail)return json({data:await service.strategyDetail(actor,detail[1])},200,requestId);if(request.method==='POST'&&detail)return json({data:await service.updateStrategy(requireActor(actor),detail[1],await request.json())},200,requestId);
+    if(request.method==='POST'&&path==='/v1/executions/receipts')return json({data:await service.recordLiveExecution(requireActor(actor),await request.json())},201,requestId);
     let m=path.match(/^\/v1\/versions\/([^/]+)$/); if(request.method==='GET'&&m)return json({data:await service.readVersion(actor,m[1],request.headers.get('x-view-key')??undefined)},200,requestId);
     if(request.method==='POST'&&path==='/v1/capabilities')return json({data:await service.issueCapability(requireActor(actor),await request.json())},201,requestId);
     m=path.match(/^\/v1\/capabilities\/([^/]+)\/revoke$/);if(request.method==='POST'&&m)return json({data:await service.revoke(requireActor(actor),m[1])},200,requestId);

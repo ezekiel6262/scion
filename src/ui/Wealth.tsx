@@ -2,8 +2,12 @@ import { engine, personaUser } from '../core/engine';
 import { ASSETS, CLASS_LABEL } from '../core/policy';
 import type { AssetClass } from '../core/types';
 import { act, date, Icon, pct, Ret, usd, useStore, useUi } from './bits';
+import { useLive } from './live';
+import { RealPortfolio } from './LiveProduct';
 
 export function PortfolioPage() {
+  const live = useLive();
+  if (live.session) return <RealPortfolio />;
   const s = useStore();
   const { go, execute } = useUi();
   const me = personaUser(s.persona);

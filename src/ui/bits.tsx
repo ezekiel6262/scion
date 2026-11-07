@@ -8,7 +8,8 @@ export const useStore = (): State => useSyncExternalStore(engine.subscribe, engi
 export type Route =
   | { name: 'home' } | { name: 'explore' } | { name: 'lineage' } | { name: 'studio' } | { name: 'keys' } | { name: 'earnings' } | { name: 'security' } | {name:'account'}
   | { name: 'plays' } | { name: 'trade' } | { name: 'duels' } | { name: 'portfolio' } | { name: 'collection' } | { name: 'studio-portfolio' }
-  | { name: 'strategy'; id: string; tab?: string } | { name: 'fork'; id: string } | { name: 'profile'; id: string };
+  | { name: 'strategy'; id: string; tab?: string } | { name: 'fork'; id: string } | { name: 'profile'; id: string }
+  | { name: 'live-strategy'; id: string };
 
 export interface Ui {
   go: (r: Route) => void;

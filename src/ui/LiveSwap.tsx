@@ -16,6 +16,8 @@ export function LiveNearSwap() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string>();
   const [error, setError] = useState<string>();
+  const owned = live.strategies.filter((strategy) => strategy.owner === live.session?.accountId);
+  const [strategyId, setStrategyId] = useState('');
   const valid = Number.isFinite(amount) && amount > 0 && amount <= MAX_NEAR;
   const output = useMemo(() => quote?.quote.amountOutFormatted ?? quote?.quote.amountOut, [quote]);
 
@@ -70,12 +72,14 @@ export function LiveNearSwap() {
       const txHash = outcome.transaction.hash;
       setStatus('Deposit sent. Waiting for NEAR Intents settlement…');
       await client.submitDeposit({ txHash, depositAddress, nearSenderAccount: live.session!.accountId });
+      let settled:'SUCCESS'|'REFUNDED'|'FAILED'|undefined;
       for (let attempt = 0; attempt < 60; attempt += 1) {
         const result = await client.status({ depositAddress });
         setStatus(`Settlement: ${result.status.replaceAll('_', ' ').toLowerCase()}`);
-        if (['SUCCESS', 'REFUNDED', 'FAILED'].includes(result.status)) break;
+        if (['SUCCESS', 'REFUNDED', 'FAILED'].includes(result.status)) { settled=result.status as typeof settled; break; }
         await new Promise((resolve) => window.setTimeout(resolve, 5000));
       }
+      if(settled==='SUCCESS'&&strategyId)await live.recordExecution({strategyId,txHash,status:'SUCCESS',depositAddress,amountIn:executable.quote.amountIn,amountOut:executable.quote.amountOut});
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The swap could not be completed.'); setStatus(undefined); }
     finally { setBusy(false); }
   }
@@ -88,6 +92,7 @@ export function LiveNearSwap() {
       <div className="box-body" style={{ display: 'grid', gap: 12 }}>
         <label className="label">You pay<input className="input" type="number" min="0.001" max={MAX_NEAR} step="0.001" value={amount} onChange={(event) => { setAmount(Number(event.target.value)); setQuote(undefined); }} /></label>
         <div className="small muted">Connected as <b>{live.session.accountId}</b>. Scion never receives your private key.</div>
+        {owned.length>0&&<label className="label">Attach successful receipt to strategy<select className="input" value={strategyId} onChange={(event)=>setStrategyId(event.target.value)}><option value="">Do not attach</option>{owned.map((strategy)=><option value={strategy.id} key={strategy.id}>{strategy.name}</option>)}</select></label>}
         {quote && <dl className="kv"><dt>Estimated USDC</dt><dd>{output}</dd><dt>Minimum received</dt><dd>{quote.quote.minAmountOut ?? 'Included in signed quote'}</dd><dt>Estimated time</dt><dd>{quote.quote.timeEstimate ? `${quote.quote.timeEstimate}s` : 'Provided after execution quote'}</dd></dl>}
         {status && <div className="small strong" aria-live="polite">{status}</div>}
         {error && <div className="small" style={{ color: 'var(--danger)' }} role="alert">{error}</div>}

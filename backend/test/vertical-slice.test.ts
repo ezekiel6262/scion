@@ -57,6 +57,11 @@ test('strategy publishing is bounded by a fresh server-signed holdings proof', a
   const payload=Buffer.from(JSON.stringify({sub:'alice.near',observedAt:now().toISOString(),exp:'2026-11-06T12:05:00Z',holdings:[{asset:'NEAR',raw:'1000'}]})).toString('base64url');
   const result=await service.createStrategy('alice.near',{...base,holdingsProof:signToken(payload,secret)});
   assert.equal(result.strategy.owner,'alice.near');
+  const updated=await service.updateStrategy('alice.near',result.strategy.id,{name:'Real NEAR v2',visibility:'public'});
+  assert.equal(updated.version.semver,'1.0.1');assert.equal(updated.strategy.visibility,'public');
+  const receipt=await service.recordLiveExecution('alice.near',{strategyId:result.strategy.id,txHash:'5N8wCzYzJwFu9M7EDqQJZV7mGQ4jX8nReAL12345',status:'SUCCESS',depositAddress:'deposit.near'});
+  assert.equal(receipt.mode,'live');assert.equal(receipt.status,'settled');
+  const detail:any=await service.strategyDetail(undefined,result.strategy.id);assert.equal(detail.version.thesis.summary,base.thesis.summary);assert.equal(detail.executions.length,1);assert.equal(detail.versions.length,2);
   await assert.rejects(()=>service.createStrategy('bob.near',{...base,holdingsProof:signToken(payload,secret)}),/another account/i);
   await assert.rejects(()=>service.createStrategy('alice.near',{...base,positions:[{...base.positions[0],observedRaw:'1001'}],holdingsProof:signToken(payload,secret)}),/do not cover/i);
 });

@@ -2,11 +2,11 @@ import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdg
 
 export interface Repository {
   putStrategy(value: Strategy): Promise<void>; getStrategy(id: string): Promise<Strategy | undefined>; listStrategies(): Promise<Strategy[]>;
-  putVersion(value: StrategyVersion): Promise<void>; getVersion(id: string): Promise<StrategyVersion | undefined>;
+  putVersion(value: StrategyVersion): Promise<void>; getVersion(id: string): Promise<StrategyVersion | undefined>; listVersions(strategyId:string):Promise<StrategyVersion[]>;
   putCapability(value: Capability): Promise<void>; getCapability(id: string): Promise<Capability | undefined>;
   putFork(value: ForkEdge): Promise<void>; listForks(strategyId: string): Promise<ForkEdge[]>;
   getForkByChildVersion(versionId: string): Promise<ForkEdge | undefined>;
-  putExecution(value: ExecutionReceipt): Promise<void>;
+  putExecution(value: ExecutionReceipt): Promise<void>; listExecutions(versionId:string):Promise<ExecutionReceipt[]>;
   putOffer(value: AccessOffer): Promise<void>; getOffer(id: string): Promise<AccessOffer | undefined>;
   getPurchaseByIdempotency(buyer: string, key: string): Promise<AccessPurchase | undefined>;
   settleAccessPurchase(purchase: AccessPurchase, capability: Capability, entries: LedgerEntry[]): Promise<void>;
@@ -21,12 +21,14 @@ export class MemoryRepository implements Repository {
   async listStrategies() { return [...this.strategies.values()].map(value => structuredClone(value)); }
   async putVersion(v: StrategyVersion) { this.versions.set(v.id, structuredClone(v)); }
   async getVersion(id: string) { const v=this.versions.get(id); return v&&structuredClone(v); }
+  async listVersions(strategyId:string){return [...this.versions.values()].filter(v=>v.strategyId===strategyId).map(v=>structuredClone(v));}
   async putCapability(v: Capability) { this.capabilities.set(v.id, structuredClone(v)); }
   async getCapability(id: string) { const v=this.capabilities.get(id); return v&&structuredClone(v); }
   async putFork(v: ForkEdge) { this.forks.set(v.id, structuredClone(v)); }
   async listForks(strategyId: string) { const strategy=await this.getStrategy(strategyId); if(!strategy)return []; const ids=new Set([strategy.latestVersionId]); return [...this.forks.values()].filter(f=>ids.has(f.parentVersionId)||ids.has(f.childVersionId)).map(value => structuredClone(value)); }
   async getForkByChildVersion(versionId:string){const v=[...this.forks.values()].find(f=>f.childVersionId===versionId);return v&&structuredClone(v);}
   async putExecution(v: ExecutionReceipt) { this.executions.set(v.id, structuredClone(v)); }
+  async listExecutions(versionId:string){return [...this.executions.values()].filter(v=>v.versionId===versionId).map(v=>structuredClone(v));}
   async putOffer(v:AccessOffer){this.offers.set(v.id,structuredClone(v));}
   async getOffer(id:string){const v=this.offers.get(id);return v&&structuredClone(v);}
   async getPurchaseByIdempotency(buyer:string,key:string){const v=[...this.purchases.values()].find(p=>p.buyer===buyer&&p.idempotencyKey===key);return v&&structuredClone(v);}

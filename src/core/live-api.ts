@@ -34,6 +34,8 @@ export type CreateLiveStrategy = {
 export type LiveProfile = { accountId:string; displayName:string; handle:string; bio:string; avatarUrl?:string; createdAt:string; updatedAt:string };
 export type LiveHolding = { asset:string; chain:'near'; contractId?:string; units:string; raw:string; decimals:number; usdPrice?:number; observedAt:string };
 export type LiveBalances = { accountId:string; network:'mainnet'; observedAt:string; holdings:LiveHolding[]; proof:string };
+export type LiveExecution = {id:string;executor:string;versionId:string;intentHash:string;policyHash:string;mode:'live'|'simulated';status:string;createdAt:string};
+export type LiveStrategyDetail = {strategy:Omit<LiveStrategy,'latestVersion'>;profile?:LiveProfile;version:LiveStrategy['latestVersion'] & Partial<{thesis:{summary:string;evidence:string[]};positions:CreateLiveStrategy['positions'];rules:CreateLiveStrategy['rules'];risk:CreateLiveStrategy['risk']}>;versions:LiveStrategy['latestVersion'][];executions:LiveExecution[]};
 
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };
@@ -77,6 +79,10 @@ export class LiveApi {
       body: JSON.stringify(strategy),
     })).data;
   }
+  async strategy(id:string,token?:string){return (await this.request<ApiEnvelope<LiveStrategyDetail>>(`/v1/strategies/${encodeURIComponent(id)}`,token?{headers:{authorization:`Bearer ${token}`}}:{})).data;}
+  async myStrategies(token:string){return (await this.request<ApiEnvelope<LiveStrategy[]>>('/v1/my/strategies',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async updateStrategy(token:string,id:string,input:Partial<CreateLiveStrategy>){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>(`/v1/strategies/${encodeURIComponent(id)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async recordExecution(token:string,input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn?:string;amountOut?:string}){return (await this.request<ApiEnvelope<LiveExecution>>('/v1/executions/receipts',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const controller = new AbortController();

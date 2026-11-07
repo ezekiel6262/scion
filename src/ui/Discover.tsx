@@ -213,10 +213,10 @@ export function Explore() {
         </div>
         {live.status === 'offline' ? <div className="small muted">{live.error} <button className="linkish strong" onClick={() => void live.refresh()}>Retry</button></div>
           : live.strategies.length === 0 ? <div className="small muted">{live.status === 'connecting' ? 'Loading production strategies…' : 'No persisted strategies yet.'}</div>
-            : <div className="live-strategies">{live.strategies.map((st) => <div key={st.id} className="live-strategy">
+            : <div className="live-strategies">{live.strategies.map((st) => <button key={st.id} className="live-strategy" onClick={()=>go({name:'live-strategy',id:st.id})}>
               <div><div className="strong">{st.name}</div><div className="small faint">{st.owner} · v{st.latestVersion.semver}</div></div>
               <div className="row"><span className="pill">{st.latestVersion.riskClass}</span><span className="pill">{st.latestVersion.horizonDays}d</span><span className="pill solid">{st.latestVersion.restricted.length} sealed</span></div>
-            </div>)}</div>}
+            </button>)}</div>}
       </section>
       <div className="row" style={{ marginBottom: 14 }}>
         <label className="search" style={{ flex: 1, minWidth: 220 }}><Icon n="search" />

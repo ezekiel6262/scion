@@ -15,6 +15,7 @@ import { Plays } from './Plays';
 import { Duels } from './Social';
 import { Collection, PortfolioPage } from './Wealth';
 import { useLive } from './live';
+import { LiveStrategyPage } from './LiveProduct';
 
 const aliceStrat = (s: State) => Object.values(s.strategies).find((x) => x.owner === 'alice' && !x.seeded && !x.parent);
 
@@ -220,6 +221,7 @@ export function App() {
             {route.name === 'security' && <Security />}
             {route.name === 'account' && <AccountPage />}
             {route.name === 'strategy' && <StrategyPage id={route.id} tab={route.tab} />}
+            {route.name === 'live-strategy' && <LiveStrategyPage id={route.id} />}
             {route.name === 'fork' && <ForkFlow parentId={route.id} />}
             {route.name === 'profile' && <Profile id={route.id} />}
           </main>
