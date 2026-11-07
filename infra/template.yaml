@@ -223,6 +223,12 @@ Resources:
             ApiId: !Ref ScionApi
             Path: /api/v1/auth/verify
             Method: ANY
+        AuthBalances:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/auth/balances
+            Method: ANY
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

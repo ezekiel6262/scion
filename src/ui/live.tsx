@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LiveApi, type CreateLiveStrategy, type LiveHealth, type LiveProfile, type LiveStrategy } from '../core/live-api';
+import { LiveApi, type CreateLiveStrategy, type LiveBalances, type LiveHealth, type LiveProfile, type LiveStrategy } from '../core/live-api';
 import { connectNear, disconnectNear, restoreNearWallet, type LiveSession } from '../core/near-wallet';
 
 type LiveState = {
@@ -10,11 +10,14 @@ type LiveState = {
   refreshedAt?: number;
   session?: LiveSession;
   profile?: LiveProfile;
+  balances?: LiveBalances;
+  balancesLoading: boolean;
   publishing: boolean;
   refresh: () => Promise<void>;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   saveProfile: (input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string})=>Promise<LiveProfile>;
+  refreshBalances:()=>Promise<void>;
   publish: (strategy: CreateLiveStrategy) => Promise<LiveStrategy>;
 };
 
@@ -24,7 +27,7 @@ const restoredSession=()=>{try{const value=JSON.parse(localStorage.getItem(SESSI
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => new LiveApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), []);
-  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'>>({ status: 'connecting', strategies: [], session: restoredSession(), publishing: false });
+  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'refreshBalances'>>({ status: 'connecting', strategies: [], session: restoredSession(), publishing: false, balancesLoading:false });
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, status: current.refreshedAt ? current.status : 'connecting' }));
     try {
@@ -41,8 +44,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, [refresh]);
   useEffect(()=>{if(!state.session)return;void api.me(state.session.token).then((me)=>setState((current)=>({...current,profile:me.profile}))).catch(()=>{localStorage.removeItem(SESSION);setState((current)=>({...current,session:undefined,profile:undefined}))});},[api,state.session?.token]);
+  const refreshBalances=useCallback(async()=>{if(!state.session)return;setState((current)=>({...current,balancesLoading:true}));try{const balances=await api.balances(state.session.token);setState((current)=>({...current,balances,balancesLoading:false}));}catch(error){setState((current)=>({...current,balancesLoading:false,error:error instanceof Error?error.message:'Balance lookup failed'}));throw error;}},[api,state.session]);
+  useEffect(()=>{if(state.session)void refreshBalances();},[state.session?.token]);
   const connect=useCallback(async()=>{const session=await connectNear(api);localStorage.setItem(SESSION,JSON.stringify(session));const me=await api.me(session.token);setState((current)=>({...current,session,profile:me.profile}));},[api]);
-  const disconnect=useCallback(async()=>{await disconnectNear();localStorage.removeItem(SESSION);setState((current)=>({...current,session:undefined,profile:undefined}));},[]);
+  const disconnect=useCallback(async()=>{await disconnectNear();localStorage.removeItem(SESSION);setState((current)=>({...current,session:undefined,profile:undefined,balances:undefined}));},[]);
   const saveProfile=useCallback(async(input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string})=>{if(!state.session)throw new Error('Connect a NEAR wallet first.');const profile=await api.saveProfile(state.session.token,input);setState((current)=>({...current,profile}));return profile;},[api,state.session]);
   const publish = useCallback(async (strategy: CreateLiveStrategy) => {
     setState((current) => ({ ...current, publishing: true }));
@@ -58,7 +63,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, [api, refresh, state.session]);
-  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile }}>{children}</LiveCtx.Provider>;
+  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile, refreshBalances }}>{children}</LiveCtx.Provider>;
 }
 
 export function useLive() {

@@ -3,7 +3,7 @@ import type { Repository } from './repository.ts';
 import { SimulatedUsdcSettlementAdapter, type ExecutionAdapter, type SettlementAdapter } from './adapters.ts';
 import { hash, id, signToken, verifyToken } from './crypto.ts';
 
-const publicVersion = (v: StrategyVersion) => ({ id:v.id, strategyId:v.strategyId, semver:v.semver, owner:v.owner, parentVersionId:v.parentVersionId, riskClass:v.risk.maxDrawdownBps<=500?'conservative':'balanced', horizonDays:v.horizonDays, manifestHash:v.manifestHash, createdAt:v.createdAt, restricted:['thesis','positions','rules'] });
+const publicVersion = (v: StrategyVersion,visibility:Strategy['visibility']='sealed') => ({ id:v.id, strategyId:v.strategyId, semver:v.semver, owner:v.owner, parentVersionId:v.parentVersionId, riskClass:v.risk.maxDrawdownBps<=500?'conservative':'balanced', horizonDays:v.horizonDays, manifestHash:v.manifestHash, createdAt:v.createdAt, restricted:visibility==='public'?[]:['thesis','positions','rules'] });
 
 export class ScionService {
   private repo: Repository;
@@ -18,7 +18,7 @@ export class ScionService {
     const version:StrategyVersion={id:strategy.latestVersionId,strategyId:strategy.id,semver:'1.3.0',owner:strategy.owner,thesis:{summary:'Stablecoin routing dislocations mean-revert when cross-chain volatility falls below its 20-day band.',evidence:['dataset:bridge-flows@2026-10','model:31b4…8fe0']},positions:[{asset:'USDC',chain:'near',targetWeightBps:6000},{asset:'USDT',chain:'arbitrum',targetWeightBps:4000}],rules:{maxSlippageBps:50,entry:'volatility_below_20d_band',exit:'spread_mean_reverted'},risk:{maxDrawdownBps:800,leverageBps:10000},horizonDays:30,manifestHash:'',createdAt:this.now().toISOString()};
     version.manifestHash=hash(version); await this.repo.putStrategy(strategy); await this.repo.putVersion(version);
   }
-  async listStrategies(){ return Promise.all((await this.repo.listStrategies()).map(async s=>({...s,latestVersion:publicVersion((await this.repo.getVersion(s.latestVersionId))!)}))); }
+  async listStrategies(){ return Promise.all((await this.repo.listStrategies()).map(async s=>({...s,latestVersion:publicVersion((await this.repo.getVersion(s.latestVersionId))!,s.visibility)}))); }
   async profile(account:string){return await this.repo.getProfile(account);}
   async saveProfile(actor:string,input:any){
     const existing=await this.repo.getProfile(actor),now=this.now().toISOString();
@@ -30,11 +30,19 @@ export class ScionService {
   }
   async createStrategy(actor:string,input:any){
     requireFields(input,['name','slug','thesis','positions','rules','risk','horizonDays']); const strategyId=id('strat'),versionId=id('ver');
+    this.validateHoldingsProof(actor,input.positions,input.holdingsProof);
     const version:StrategyVersion={id:versionId,strategyId,semver:'1.0.0',owner:actor,thesis:input.thesis,positions:input.positions,rules:input.rules,risk:input.risk,horizonDays:input.horizonDays,manifestHash:'',createdAt:this.now().toISOString()}; version.manifestHash=hash(version);
-    const strategy:Strategy={id:strategyId,slug:input.slug,name:input.name,owner:actor,latestVersionId:versionId,visibility:'public-metrics-private-content',royaltyBps:input.royaltyBps??500}; await this.repo.putStrategy(strategy); await this.repo.putVersion(version); return {strategy,version:publicVersion(version)};
+    const visibility=input.visibility==='public'?'public':'sealed';const strategy:Strategy={id:strategyId,slug:input.slug,name:input.name,owner:actor,latestVersionId:versionId,visibility,royaltyBps:input.royaltyBps??500}; await this.repo.putStrategy(strategy); await this.repo.putVersion(version); return {strategy,version:publicVersion(version,visibility)};
+  }
+  private validateHoldingsProof(actor:string,positions:any[],token:unknown){
+    if(!Array.isArray(positions)||!positions.length)throw new DomainError('invalid_positions','At least one position is required');
+    if(typeof token!=='string')throw new DomainError('holdings_proof_required','Refresh your live wallet balances before publishing',401);
+    const raw=verifyToken(token,this.secret);if(!raw)throw new DomainError('invalid_holdings_proof','Wallet holdings proof is invalid',401);let proof:any;try{proof=JSON.parse(Buffer.from(raw,'base64url').toString())}catch{throw new DomainError('invalid_holdings_proof','Wallet holdings proof is malformed',401)}
+    if(proof.sub!==actor||new Date(proof.exp)<=this.now())throw new DomainError('invalid_holdings_proof','Wallet holdings proof is expired or belongs to another account',401);
+    for(const position of positions){const holding=proof.holdings?.find((value:any)=>value.asset===position.asset);if(!holding||typeof position.observedRaw!=='string'||!/^\d+$/.test(position.observedRaw)||!/^\d+$/.test(String(holding.raw))||BigInt(position.observedRaw)<=0n||BigInt(position.observedRaw)>BigInt(holding.raw))throw new DomainError('insufficient_verified_holdings',`Verified ${position.asset} holdings do not cover this position`,422);position.observedAt=proof.observedAt;}
   }
   async readVersion(actor:string|undefined,versionId:string,token?:string){
-    const version=await this.mustVersion(versionId); if(actor===version.owner)return version; const base=publicVersion(version); if(!token||!actor)return base;
+    const version=await this.mustVersion(versionId),strategy=await this.repo.getStrategy(version.strategyId); if(actor===version.owner||strategy?.visibility==='public')return version; const base=publicVersion(version,strategy?.visibility); if(!token||!actor)return base;
     const capability=await this.validateCapability(actor,versionId,token); const out:any={...base};
     if(capability.scopes.includes('thesis.summary'))out.thesis={summary:version.thesis.summary};
     if(capability.scopes.includes('positions.assets'))out.positions=version.positions.map(p=>({asset:p.asset,chain:p.chain}));

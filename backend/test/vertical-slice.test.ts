@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MemoryRepository } from '../src/repository.ts';
 import { SimulatedNearIntentsAdapter } from '../src/adapters.ts';
 import { ScionService } from '../src/service.ts';
+import { signToken } from '../src/crypto.ts';
 
 test('Alice grants access, Bob forks and executes, then access is revoked', async () => {
   const repo = new MemoryRepository();
@@ -47,6 +48,17 @@ test('capability expiry must be positive and bounded', async () => {
   await service.seed();
   await assert.rejects(() => service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['thesis.summary'],expiresInSeconds:0}), /lifetime/i);
   await assert.rejects(() => service.issueCapability('alice.near',{subject:'bob.near',versionId:'ver_quiet_delta_130',scopes:['thesis.summary'],expiresInSeconds:86401}), /lifetime/i);
+});
+
+test('strategy publishing is bounded by a fresh server-signed holdings proof', async () => {
+  const now=()=>new Date('2026-11-06T12:00:00Z'),secret='test-secret',service=new ScionService(new MemoryRepository(),new SimulatedNearIntentsAdapter(),secret,now);
+  const base={name:'Real NEAR',slug:'real-near',thesis:{summary:'A real wallet-backed NEAR thesis.',evidence:[]},positions:[{asset:'NEAR',chain:'near',targetWeightBps:10000,observedRaw:'500',observedUnits:'0.0000000000000000000005'}],rules:{maxSlippageBps:50,entry:'manual',exit:'manual'},risk:{maxDrawdownBps:1000,leverageBps:10000},horizonDays:90,royaltyBps:500};
+  await assert.rejects(()=>service.createStrategy('alice.near',base),/balances|proof/i);
+  const payload=Buffer.from(JSON.stringify({sub:'alice.near',observedAt:now().toISOString(),exp:'2026-11-06T12:05:00Z',holdings:[{asset:'NEAR',raw:'1000'}]})).toString('base64url');
+  const result=await service.createStrategy('alice.near',{...base,holdingsProof:signToken(payload,secret)});
+  assert.equal(result.strategy.owner,'alice.near');
+  await assert.rejects(()=>service.createStrategy('bob.near',{...base,holdingsProof:signToken(payload,secret)}),/another account/i);
+  await assert.rejects(()=>service.createStrategy('alice.near',{...base,positions:[{...base.positions[0],observedRaw:'1001'}],holdingsProof:signToken(payload,secret)}),/do not cover/i);
 });
 
 test('paid access is idempotent and splits fork royalties', async () => {

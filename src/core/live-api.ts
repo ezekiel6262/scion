@@ -22,14 +22,18 @@ export type LiveStrategy = {
 export type CreateLiveStrategy = {
   name: string;
   slug: string;
+  visibility:'public'|'sealed';
   thesis: { summary: string; evidence: string[] };
-  positions: { asset: string; chain: string; targetWeightBps: number }[];
+  positions: { asset: string; chain: string; targetWeightBps: number; observedRaw:string; observedUnits:string; observedAt:string }[];
   rules: { maxSlippageBps: number; entry: string; exit: string };
   risk: { maxDrawdownBps: number; leverageBps: number };
   horizonDays: number;
   royaltyBps: number;
+  holdingsProof:string;
 };
 export type LiveProfile = { accountId:string; displayName:string; handle:string; bio:string; avatarUrl?:string; createdAt:string; updatedAt:string };
+export type LiveHolding = { asset:string; chain:'near'; contractId?:string; units:string; raw:string; decimals:number; usdPrice?:number; observedAt:string };
+export type LiveBalances = { accountId:string; network:'mainnet'; observedAt:string; holdings:LiveHolding[]; proof:string };
 
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };
@@ -63,6 +67,7 @@ export class LiveApi {
   }
 
   async me(token:string){return (await this.request<ApiEnvelope<{accountId:string;profile?:LiveProfile}>>('/v1/me',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async balances(token:string){return (await this.request<ApiEnvelope<LiveBalances>>('/v1/auth/balances',{headers:{authorization:`Bearer ${token}`}})).data;}
   async saveProfile(token:string,input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string}){return (await this.request<ApiEnvelope<LiveProfile>>('/v1/profile',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async createStrategy(token: string, strategy: CreateLiveStrategy) {
