@@ -1,0 +1,11 @@
+{
+  "asOf": "2026-10-15",
+  "monthlyVolumeRecordUsdB": { "value": 4.80, "month": "2026-09", "previousHighUsdB": 3.65, "previousHighMonth": "2025-11", "source": "Bitcoin.com, from NEAR's revenue dashboard", "url": "https://www.bitcoin.com/price/near-protocol-near" },
+  "buybacksUsdM": { "value": 16.03, "since": "late February 2026", "through": "2026-10-15", "note": "Protocol revenue from Intents swaps goes toward buying NEAR", "source": "Bitcoin.com, from NEAR's revenue dashboard", "url": "https://www.bitcoin.com/price/near-protocol-near" },
+  "cumulativeAtEndFebruaryUsdB": { "value": 13.0, "derived": "Bankless reported about $18B total with about $5B since end of February 2026", "source": "Bankless", "url": "https://www.bankless.com/read/a-revival-for-near" },
+  "marketCapUsdB": { "value": 6.06, "date": "2026-10-15", "source": "Bitcoin.com", "url": "https://www.bitcoin.com/price/near-protocol-near" },
+  "priceUsd": { "value": 4.63, "date": "2026-10-15", "source": "Bitcoin.com", "url": "https://www.bitcoin.com/price/near-protocol-near" },
+  "supplyB": { "value": 1.31, "stakedPct": 45.7, "date": "2026-10-15", "source": "Bitcoin.com", "url": "https://www.bitcoin.com/price/near-protocol-near" },
+  "confidentialShare": { "confidentialUsdB": 1.9, "totalUsdB": 31.4, "source": "Crypto Briefing, from Dune", "url": "https://cryptobriefing.com/near-protocol-intents-30-billion-volume-record/" },
+  "incident": { "text": "About $3.8M was withdrawn through a contract bug on 1 October 2026 and returned on 2 October; the faulty feature was removed on 7 October", "source": "Bitcoin.com", "url": "https://www.bitcoin.com/price/near-protocol-near" }
+}

@@ -2,18 +2,35 @@
   "name": "scion",
   "version": "0.1.0",
   "private": true,
+  "description": "Scion - privacy-native social trading network and strategy protocol on NEAR Intents",
   "type": "module",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "test": "npm --prefix backend test",
-    "check": "npm --prefix backend run check"
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "SINGLE=1 vite build --outDir dist-single",
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild tests/protocol.test.ts --bundle --platform=node --format=esm --outfile=.test/run.mjs --log-level=warning && node .test/run.mjs",
+    "test:backend": "npm --prefix backend test",
+    "check:backend": "npm --prefix backend run check",
+    "model": "esbuild scripts/rerun-model.ts --bundle --platform=node --format=esm --outfile=.test/model.mjs --log-level=warning && node .test/model.mjs"
   },
   "dependencies": {
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@types/pg": "8.23.1"
+    "@types/node": "^22.10.2",
+    "@types/pg": "8.23.1",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "^6.2.1",
+    "esbuild": "^0.28.2",
+    "typescript": "5.6.3",
+    "vite": "^8.3.6",
+    "vite-plugin-singlefile": "^2.3.4"
   }
 }
