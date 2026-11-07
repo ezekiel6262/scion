@@ -3,6 +3,7 @@ import { engine, personaUser } from '../core/engine';
 import { ASSETS, CLASS_LABEL, KEY_SPECS } from '../core/policy';
 import { aliceDraft, type Draft } from '../core/seed';
 import { act, Icon, SECTION_LABEL, SECTION_ORDER, usd, useStore, useUi } from './bits';
+import { useLive } from './live';
 
 type Source = 'buy' | 'held';
 interface Row { asset: string; source: Source; usd: number; units: number }
@@ -11,6 +12,7 @@ const fmtUnits = (n: number) => n.toLocaleString(undefined, { maximumFractionDig
 export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
   const s = useStore();
   const { go, execute } = useUi();
+  const live = useLive();
   const me = personaUser(s.persona);
   const wallet = me ? s.portfolios[me] : undefined;
   const [step, setStep] = useState(0);
@@ -56,11 +58,27 @@ export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
     setBusy(true);
     const draft: Draft = { ...d, content: { ...d.content, positions: { holdings: calc.holdings } } };
     const buys = rows.filter((r) => r.source === 'buy').map((r) => ({ asset: r.asset, chain: ASSETS[r.asset].chain, usd: r.usd, weight: Math.round((r.usd / calc.total) * 100) }));
+    const liveStrategy = await act(() => live.publish({
+      name: draft.title.trim(),
+      slug: draft.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 64) || `strategy-${Date.now()}`,
+      thesis: { summary: draft.content.thesis?.claim ?? draft.summary, evidence: draft.content.thesis?.catalysts ?? [] },
+      positions: calc.holdings.map((holding) => ({ asset: holding.asset, chain: holding.chain, targetWeightBps: holding.weight * 100 })),
+      rules: {
+        maxSlippageBps: 50,
+        entry: draft.content.rules?.entry.join('; ') ?? 'Creator-defined entry',
+        exit: draft.content.rules?.exit.join('; ') ?? 'Creator-defined exit',
+      },
+      risk: { maxDrawdownBps: Math.round((draft.content.rules?.maxDrawdownPct ?? draft.riskScore * 2) * 100), leverageBps: Math.round((draft.content.rules?.leverage ?? 1) * 10_000) },
+      horizonDays: Math.max(1, Number.parseInt(draft.horizon, 10) || 90),
+      royaltyBps: draft.royaltyBps,
+    }));
+    if (!liveStrategy) { setBusy(false); return; }
     const sid = await act(() => engine.publish(draft, undefined, calc.total, false, {
       held: rows.filter((r) => r.source === 'held').map((r) => ({ asset: r.asset, units: r.units })), buys, walletFunded: fund === 'wallet',
     }));
     setBusy(false);
     if (!sid) return;
+    engine.toast(`Published live as ${liveStrategy.owner}.`, 'ok');
     go({ name: 'strategy', id: sid });
     if (buys.length) execute(sid, buys, 50);
   };
@@ -175,12 +193,14 @@ export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
             <div className="box">
               <div className="box-head"><h2 className="h3">What happens when you publish</h2></div>
               <div className="box-body tl" style={{ margin: 0 }}>
-                <div className="tl-item on"><span className="n">1</span><span>{d.visibility === 'public' ? 'Publish every section openly, versioned and signed' : 'Seal 5 sections with new keys in your browser'}</span></div>
-                {rows.some((r) => r.source === 'held') && <div className="tl-item on"><span className="n">2</span><span>Record a signed holding proof for {rows.filter((r) => r.source === 'held').length} token{rows.filter((r) => r.source === 'held').length > 1 ? 's' : ''} you already hold. The public sees only the count.</span></div>}
+                <div className="tl-item on"><span className="n">1</span><span>Authenticate this creator device with a fresh cryptographic signature</span></div>
+                <div className="tl-item on"><span className="n">2</span><span>Persist the strategy and immutable version in Scion’s live AWS database</span></div>
+                <div className="tl-item on"><span className="n">3</span><span>{d.visibility === 'public' ? 'Publish every section openly, versioned and signed' : 'Seal 5 sections with new keys in your browser'}</span></div>
+                {rows.some((r) => r.source === 'held') && <div className="tl-item on"><span className="n">4</span><span>Record a signed holding proof for {rows.filter((r) => r.source === 'held').length} token{rows.filter((r) => r.source === 'held').length > 1 ? 's' : ''} you already hold. The public sees only the count.</span></div>}
                 {rows.filter((r) => r.source === 'buy').map((r, i) => (
-                  <div key={r.asset} className="tl-item on"><span className="n">{(rows.some((x) => x.source === 'held') ? 3 : 2) + i}</span><span>Buy {usd(r.usd, 0)} of {r.asset}, {engine.route('USDC', r.asset)}, from {fund === 'wallet' ? 'your wallet’s USDC' : 'demo capital'}. You sign it next.</span></div>
+                  <div key={r.asset} className="tl-item on"><span className="n">{(rows.some((x) => x.source === 'held') ? 5 : 4) + i}</span><span>Buy {usd(r.usd, 0)} of {r.asset}, {engine.route('USDC', r.asset)}, from {fund === 'wallet' ? 'your wallet’s USDC' : 'demo capital'}. You sign it next.</span></div>
                 ))}
-                <div className="tl-item on"><span className="n">{2 + rows.filter((r) => r.source === 'buy').length + (rows.some((r) => r.source === 'held') ? 1 : 0)}</span><span>Start the verified record at today’s prices</span></div>
+                <div className="tl-item on"><span className="n">{4 + rows.filter((r) => r.source === 'buy').length + (rows.some((r) => r.source === 'held') ? 1 : 0)}</span><span>Start the verified record at today’s prices</span></div>
               </div>
             </div>
           )}
@@ -189,7 +209,7 @@ export function Studio({ fromPortfolio }: { fromPortfolio?: boolean }) {
             <button className="btn" disabled={step === 0} onClick={() => setStep(step - 1)}>Back</button>
             {step < 3
               ? <button className="btn primary" disabled={!okStep[step]} onClick={() => setStep(step + 1)}>Continue</button>
-              : <button className="btn primary lg" disabled={busy || calc.problems.length > 0 || !d.title.trim() || (d.visibility !== 'public' && !d.keys.length)} onClick={publish}>{busy ? 'Sealing' : rows.some((r) => r.source === 'buy') ? 'Publish and buy' : 'Publish'}</button>}
+              : <button className="btn primary lg" disabled={busy || live.status !== 'live' || calc.problems.length > 0 || !d.title.trim() || (d.visibility !== 'public' && !d.keys.length)} onClick={publish}>{busy ? 'Publishing live…' : live.status !== 'live' ? 'Live API unavailable' : rows.some((r) => r.source === 'buy') ? 'Publish live and buy' : 'Publish live'}</button>}
           </div>
         </div>
 

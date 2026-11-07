@@ -19,6 +19,17 @@ export type LiveStrategy = {
   };
 };
 
+export type CreateLiveStrategy = {
+  name: string;
+  slug: string;
+  thesis: { summary: string; evidence: string[] };
+  positions: { asset: string; chain: string; targetWeightBps: number }[];
+  rules: { maxSlippageBps: number; entry: string; exit: string };
+  risk: { maxDrawdownBps: number; leverageBps: number };
+  horizonDays: number;
+  royaltyBps: number;
+};
+
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };
 
@@ -47,6 +58,14 @@ export class LiveApi {
   async authVerify(challengeId: string, signature: string) {
     return (await this.request<ApiEnvelope<{ token: string; accountId: string; expiresAt: string }>>('/v1/auth/verify', {
       method: 'POST', body: JSON.stringify({ challengeId, signature }),
+    })).data;
+  }
+
+  async createStrategy(token: string, strategy: CreateLiveStrategy) {
+    return (await this.request<ApiEnvelope<{ strategy: LiveStrategy; version: LiveStrategy['latestVersion'] }>>('/v1/strategies', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify(strategy),
     })).data;
   }
 
