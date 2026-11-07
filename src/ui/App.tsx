@@ -14,6 +14,7 @@ import { StrategyPage } from './Strategy';
 import { Plays } from './Plays';
 import { Duels } from './Social';
 import { Collection, PortfolioPage } from './Wealth';
+import { useLive } from './live';
 
 const aliceStrat = (s: State) => Object.values(s.strategies).find((x) => x.owner === 'alice' && !x.seeded && !x.parent);
 
@@ -128,6 +129,7 @@ function PersonaSwitch() {
 
 export function App() {
   const s = useStore();
+  const live = useLive();
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const [demo, setDemo] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -179,6 +181,10 @@ export function App() {
             ))}
           </nav>
           <div className="side-foot">
+            <button className={`live-status ${live.status}`} onClick={() => void live.refresh()} title={live.error ?? 'Refresh production service status'}>
+              <span className="live-dot" />
+              <span>{live.status === 'live' ? `Live API · ${live.strategies.length} persisted` : live.status === 'offline' ? 'API offline · retry' : 'Connecting to API'}</span>
+            </button>
             <div className="clockbox"><span><Icon n="clock" s={13} /> {date(s.clock)} UTC</span><button className="btn sm" onClick={() => act(() => engine.advanceDay())} title="Simulated market moves one day">+24h</button></div>
             <div className="account">
               <div className="account-row">

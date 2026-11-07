@@ -4,6 +4,7 @@ import { spec } from '../core/policy';
 import type { Strategy } from '../core/types';
 import { FeaturedThesis } from './Thesis';
 import { ExploreViews, ago, Av, Icon, pct, Ret, useStore, useUi, Verified } from './bits';
+import { useLive } from './live';
 
 export const minPrice = (st: Strategy) => (st.keys.length ? Math.min(...st.keys.map((k) => spec(k).price)) : 0);
 export const sealedCount = (st: Strategy) => Object.keys(st.versions.at(-1)!.sealed).length;
@@ -184,6 +185,7 @@ export function Home({ onDemo }: { onDemo: () => void }) {
 
 export function Explore() {
   const s = useStore();
+  const live = useLive();
   const { go } = useUi();
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<'return' | 'forks' | 'risk' | 'new'>('return');
@@ -204,6 +206,18 @@ export function Explore() {
       <div className="pagehead">
         <div><h1 className="title">Explore</h1><p className="muted">Every strategy on Scion, ranked by results the gateway has attested.</p></div>
       </div>
+      <section className="box live-network" aria-label="Live Scion network">
+        <div className="box-head">
+          <div><h2 className="h3">Live network</h2><p className="small muted">Persisted in Scion’s private production database, separate from the guided browser demo.</p></div>
+          <span className={`pill ${live.status === 'live' ? 'gain' : 'solid'}`}><span className="live-dot" /> {live.status}</span>
+        </div>
+        {live.status === 'offline' ? <div className="small muted">{live.error} <button className="linkish strong" onClick={() => void live.refresh()}>Retry</button></div>
+          : live.strategies.length === 0 ? <div className="small muted">{live.status === 'connecting' ? 'Loading production strategies…' : 'No persisted strategies yet.'}</div>
+            : <div className="live-strategies">{live.strategies.map((st) => <div key={st.id} className="live-strategy">
+              <div><div className="strong">{st.name}</div><div className="small faint">{st.owner} · v{st.latestVersion.semver}</div></div>
+              <div className="row"><span className="pill">{st.latestVersion.riskClass}</span><span className="pill">{st.latestVersion.horizonDays}d</span><span className="pill solid">{st.latestVersion.restricted.length} sealed</span></div>
+            </div>)}</div>}
+      </section>
       <div className="row" style={{ marginBottom: 14 }}>
         <label className="search" style={{ flex: 1, minWidth: 220 }}><Icon n="search" />
           <input className="input" placeholder="Search strategies, assets, creators" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search strategies" />
