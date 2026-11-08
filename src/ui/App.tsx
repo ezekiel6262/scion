@@ -154,9 +154,9 @@ export function App() {
   const nav = groups.flatMap(([, items]) => items);
   const mobileNav: [Route['name'], string, string][] = [['home', 'Home', 'home'], ['plays', 'Plays', 'target'], ['explore', 'Explore', 'compass'], ['trade', 'Trade', 'swap'], ['portfolio', 'Portfolio', 'pie']];
   const notices = me ? s.notices.filter((n) => n.to === me) : [];
-  const unread = notices.filter((n) => !n.read).length;
+  const unread = live.session?live.notifications.filter((n) => !n.read).length:notices.filter((n) => !n.read).length;
   const bell = (
-    <button className="btn ghost sm bell" aria-label={`Notifications, ${unread} unread`} onClick={() => { setBellOpen(!bellOpen); engine.markNoticesRead(); }} disabled={!me}>
+    <button className="btn ghost sm bell" aria-label={`Notifications, ${unread} unread`} onClick={() => { setBellOpen(!bellOpen); if(live.session)void live.markNotificationsRead();else engine.markNoticesRead(); }} disabled={!live.session&&!me}>
       <Icon n="bell" s={16} />{unread > 0 && <span className="dotn">{unread}</span>}
     </button>
   );
@@ -232,11 +232,11 @@ export function App() {
           </nav>
         </div>
       </div>
-      {bellOpen && me && (
+      {bellOpen && (live.session||me) && (
         <div className="notices" role="dialog" aria-label="Notifications">
           <div className="demo-head"><div className="h3">Notifications</div><button className="btn ghost sm" onClick={() => setBellOpen(false)} aria-label="Close"><Icon n="x" /></button></div>
-          {notices.length === 0 ? <div className="empty small">Nothing yet. Exit notices, accepted changes and reveals show up here.</div>
-            : notices.map((n) => <div key={n.id} className={`item ${n.read ? '' : 'unread'}`}><div>{n.text}</div><div className="small faint">{date(n.ts)} UTC</div></div>)}
+          {live.session?(live.notifications.length===0?<div className="empty small">Nothing yet. Follows, likes, comments and forks show up here.</div>:live.notifications.map(n=><div key={n.id} className={`item ${n.read?'':'unread'}`}><div>{n.text}</div><div className="small faint">{new Date(n.createdAt).toLocaleString()}</div></div>)):(notices.length === 0 ? <div className="empty small">Nothing yet.</div>
+            : notices.map((n) => <div key={n.id} className={`item ${n.read ? '' : 'unread'}`}><div>{n.text}</div><div className="small faint">{date(n.ts)} UTC</div></div>))}
         </div>
       )}
       {more && (

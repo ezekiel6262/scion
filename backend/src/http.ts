@@ -10,6 +10,13 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     if(request.method==='POST'&&path==='/v1/auth/challenge'){const b=await request.json() as any;return json({data:await auth.challenge(b.accountId,b.publicKey)},201,requestId);}
     if(request.method==='POST'&&path==='/v1/auth/verify'){const b=await request.json() as any;return json({data:await auth.verify(b.challengeId,b.signature)},200,requestId);}
     if(request.method==='GET'&&path==='/v1/strategies')return json({data:await service.listStrategies()},200,requestId);
+    if(request.method==='GET'&&path==='/v1/feed')return json({data:await service.feed(actor)},200,requestId);
+    let social=path.match(/^\/v1\/profiles\/([^/]+)$/);if(request.method==='GET'&&social)return json({data:await service.publicProfile(decodeURIComponent(social[1]),actor)},200,requestId);
+    social=path.match(/^\/v1\/social\/follows\/([^/]+)$/);if(request.method==='POST'&&social)return json({data:await service.toggleFollow(requireActor(actor),decodeURIComponent(social[1]))},200,requestId);
+    social=path.match(/^\/v1\/social\/likes\/([^/]+)$/);if(request.method==='POST'&&social)return json({data:await service.toggleLike(requireActor(actor),social[1])},200,requestId);
+    social=path.match(/^\/v1\/strategies\/([^/]+)\/comments$/);if(request.method==='GET'&&social)return json({data:await service.comments(social[1])},200,requestId);if(request.method==='POST'&&social)return json({data:await service.addComment(requireActor(actor),social[1],await request.json())},201,requestId);
+    if(request.method==='GET'&&path==='/v1/notifications')return json({data:await service.notifications(requireActor(actor))},200,requestId);
+    if(request.method==='POST'&&path==='/v1/notifications/read')return json({data:await service.markNotificationsRead(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/my/strategies')return json({data:await service.myStrategies(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/me')return json({data:{accountId:requireActor(actor),profile:await service.profile(requireActor(actor))}},200,requestId);
     if(request.method==='POST'&&path==='/v1/profile')return json({data:await service.saveProfile(requireActor(actor),await request.json())},200,requestId);

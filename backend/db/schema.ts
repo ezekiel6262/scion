@@ -73,6 +73,8 @@ create table if not exists scion_private.product_objects (
   owner_account text not null, strategy_id text, visibility text not null,
   payload jsonb not null, created_at timestamptz not null, updated_at timestamptz not null
 );
+alter table scion_private.product_objects drop constraint if exists product_objects_object_type_check;
+alter table scion_private.product_objects add constraint product_objects_object_type_check check (object_type in ('profile','follow','like','comment','notification','play','room','room_message','portfolio','nft','attestation','gateway_event','suggestion','stance'));
 
 create index if not exists strategies_owner_idx on scion_private.strategies(owner_account);
 create index if not exists strategy_versions_strategy_idx on scion_private.strategy_versions(strategy_id, created_at desc);

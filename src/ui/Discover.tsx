@@ -5,6 +5,7 @@ import type { Strategy } from '../core/types';
 import { FeaturedThesis } from './Thesis';
 import { ExploreViews, ago, Av, Icon, pct, Ret, useStore, useUi, Verified } from './bits';
 import { useLive } from './live';
+import { LiveFeed } from './LiveSocial';
 
 export const minPrice = (st: Strategy) => (st.keys.length ? Math.min(...st.keys.map((k) => spec(k).price)) : 0);
 export const sealedCount = (st: Strategy) => Object.keys(st.versions.at(-1)!.sealed).length;
@@ -94,6 +95,8 @@ export function StrategyCard({ st }: { st: Strategy }) {
 }
 
 export function Home() {
+  return <LiveFeed />;
+  /* legacy demo surface retained temporarily for reference
   const s = useStore();
   const { go } = useUi();
   const [tab, setTab] = useState<'all' | 'following' | 'agents'>('all');
@@ -181,9 +184,12 @@ export function Home() {
       </div>
     </div>
   );
+  */
 }
 
 export function Explore() {
+  return <LiveFeed explore />;
+  /* legacy demo explorer retained temporarily for reference
   const s = useStore();
   const live = useLive();
   const { go } = useUi();
@@ -253,4 +259,5 @@ export function Explore() {
       </div>
     </div>
   );
+  */
 }

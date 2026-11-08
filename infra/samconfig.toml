@@ -2,7 +2,7 @@ version = 0.1
 
 [default.build.parameters]
 template_file = "template.yaml"
-parallel = true
+parallel = false
 
 [default.deploy.parameters]
 stack_name = "scion-production"

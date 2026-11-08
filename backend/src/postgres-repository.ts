@@ -1,4 +1,4 @@
-import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdge, LedgerEntry, Profile, Strategy, StrategyVersion } from './domain.ts';
+import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdge, LedgerEntry, ProductObject, Profile, Strategy, StrategyVersion } from './domain.ts';
 import type { Repository } from './repository.ts';
 import type { AuthChallenge, AuthStore } from './auth.ts';
 
@@ -41,6 +41,10 @@ export class PostgresRepository implements Repository {
   async listLedgerEntries(account:string){const r=await this.db.query('SELECT * FROM scion_private.ledger_entries WHERE account_id=$1 ORDER BY created_at DESC,id DESC',[account]);return r.rows.map(toLedgerEntry);}
   async getProfile(account:string){const r=await this.db.query("SELECT payload FROM scion_private.product_objects WHERE id=$1 AND object_type='profile'",[`profile:${account}`]);return r.rows[0]?.payload as Profile|undefined;}
   async putProfile(value:Profile){await this.db.query(`INSERT INTO scion_private.product_objects (id,object_type,owner_account,visibility,payload,created_at,updated_at) VALUES ($1,'profile',$2,'public',$3::jsonb,$4,$5) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=EXCLUDED.updated_at`,[`profile:${value.accountId}`,value.accountId,JSON.stringify(value),value.createdAt,value.updatedAt]);}
+  async putProductObject(v:ProductObject){await this.db.query(`INSERT INTO scion_private.product_objects (id,object_type,owner_account,strategy_id,visibility,payload,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,visibility=EXCLUDED.visibility,updated_at=EXCLUDED.updated_at`,[v.id,v.objectType,v.ownerAccount,v.strategyId??null,v.visibility,JSON.stringify(v.payload),v.createdAt,v.updatedAt]);}
+  async getProductObject(id:string){const r=await this.db.query('SELECT * FROM scion_private.product_objects WHERE id=$1',[id]);return r.rows[0]&&toProductObject(r.rows[0]);}
+  async deleteProductObject(id:string){await this.db.query('DELETE FROM scion_private.product_objects WHERE id=$1',[id]);}
+  async listProductObjects(type:ProductObject['objectType']){const r=await this.db.query('SELECT * FROM scion_private.product_objects WHERE object_type=$1 ORDER BY created_at DESC',[type]);return r.rows.map(toProductObject);}
 }
 
 export class PostgresAuthStore implements AuthStore {
@@ -56,3 +60,4 @@ const toOffer=(r:any):AccessOffer=>({id:r.id,issuer:r.issuer_account,versionId:r
 const toPurchase=(r:any):AccessPurchase=>({id:r.id,idempotencyKey:r.idempotency_key,buyer:r.buyer_account,offerId:r.offer_id,versionId:r.version_id,issuer:r.issuer_account,amountMinor:Number(r.amount_minor),currency:r.currency,status:r.status,settlementRef:r.settlement_ref,capabilityId:r.capability_id,createdAt:new Date(r.created_at).toISOString()});
 const toLedgerEntry=(r:any):LedgerEntry=>({id:r.id,purchaseId:r.purchase_id,account:r.account_id,kind:r.kind,amountMinor:Number(r.amount_minor),currency:r.currency,createdAt:new Date(r.created_at).toISOString()});
 const toExecution=(r:any):ExecutionReceipt=>({id:r.id,executor:r.executor_account,versionId:r.version_id,intentHash:r.intent_hash,policyHash:r.policy_hash,mode:r.mode,status:r.status,createdAt:new Date(r.created_at).toISOString()});
+const toProductObject=(r:any):ProductObject=>({id:r.id,objectType:r.object_type,ownerAccount:r.owner_account,strategyId:r.strategy_id??undefined,visibility:r.visibility,payload:r.payload,createdAt:new Date(r.created_at).toISOString(),updatedAt:new Date(r.updated_at).toISOString()});

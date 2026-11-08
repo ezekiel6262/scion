@@ -36,6 +36,9 @@ export type LiveHolding = { asset:string; chain:'near'; contractId?:string; unit
 export type LiveBalances = { accountId:string; network:'mainnet'; observedAt:string; holdings:LiveHolding[]; proof:string };
 export type LiveExecution = {id:string;executor:string;versionId:string;intentHash:string;policyHash:string;mode:'live'|'simulated';status:string;createdAt:string};
 export type LiveStrategyDetail = {strategy:Omit<LiveStrategy,'latestVersion'>;profile?:LiveProfile;version:LiveStrategy['latestVersion'] & Partial<{thesis:{summary:string;evidence:string[]};positions:CreateLiveStrategy['positions'];rules:CreateLiveStrategy['rules'];risk:CreateLiveStrategy['risk']}>;versions:LiveStrategy['latestVersion'][];executions:LiveExecution[]};
+export type LiveFeedItem={strategy:LiveStrategy;profile?:LiveProfile;demo:boolean;likes:number;comments:number;forks:number;liked:boolean;following:boolean};
+export type LiveComment={id:string;author:string;body:string;createdAt:string;profile?:LiveProfile};
+export type LiveNotification={id:string;actor:string;kind:string;strategyId?:string;text:string;read:boolean;createdAt:string};
 
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };
@@ -55,6 +58,14 @@ export class LiveApi {
 
   health() { return this.request<LiveHealth>('/health'); }
   async strategies() { return (await this.request<ApiEnvelope<LiveStrategy[]>>('/v1/strategies')).data; }
+  async feed(token?:string){return (await this.request<ApiEnvelope<LiveFeedItem[]>>('/v1/feed',token?{headers:{authorization:`Bearer ${token}`}}:{})).data;}
+  async toggleFollow(token:string,account:string){return (await this.request<ApiEnvelope<{following:boolean}>>(`/v1/social/follows/${encodeURIComponent(account)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'})).data;}
+  async toggleLike(token:string,strategyId:string){return (await this.request<ApiEnvelope<{liked:boolean}>>(`/v1/social/likes/${encodeURIComponent(strategyId)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'})).data;}
+  async comments(strategyId:string){return (await this.request<ApiEnvelope<LiveComment[]>>(`/v1/strategies/${encodeURIComponent(strategyId)}/comments`)).data;}
+  async addComment(token:string,strategyId:string,body:string){return (await this.request<ApiEnvelope<LiveComment>>(`/v1/strategies/${encodeURIComponent(strategyId)}/comments`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({body})})).data;}
+  async notifications(token:string){return (await this.request<ApiEnvelope<LiveNotification[]>>('/v1/notifications',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async readNotifications(token:string){return this.request<ApiEnvelope<{updated:number}>>('/v1/notifications/read',{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'});}
+  async createFork(token:string,input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string}){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>('/v1/forks',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async authChallenge() {
     return (await this.request<ApiEnvelope<{ challengeId:string; message:string; nonce:string; recipient:string; expiresAt:string }>>('/v1/auth/challenge', {
