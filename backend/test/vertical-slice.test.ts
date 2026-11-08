@@ -5,6 +5,8 @@ import { SimulatedNearIntentsAdapter } from '../src/adapters.ts';
 import { ScionService } from '../src/service.ts';
 import { signToken } from '../src/crypto.ts';
 
+test('Scion usernames are unique regardless of letter case',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret');await service.saveProfile('one.near',{displayName:'One',handle:'Alpha_User',bio:'',avatarUrl:'https://example.com/avatar.webp'});await assert.rejects(()=>service.saveProfile('two.near',{displayName:'Two',handle:'alpha_user',bio:''}),/already taken/i);assert.equal((await service.profile('one.near'))?.handle,'alpha_user');});
+
 test('Alice grants access, Bob forks and executes, then access is revoked', async () => {
   const repo = new MemoryRepository();
   const service = new ScionService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));

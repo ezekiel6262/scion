@@ -36,6 +36,7 @@ export class ScionService {
     const displayName=clean(input?.displayName,60),handle=clean(input?.handle,32).toLowerCase(),bio=clean(input?.bio??'',280),avatarUrl=input?.avatarUrl?clean(input.avatarUrl,500):undefined;
     if(!displayName)throw new DomainError('invalid_display_name','Display name is required');
     if(!/^[a-z0-9][a-z0-9_-]{1,31}$/.test(handle))throw new DomainError('invalid_handle','Handle must be 2-32 letters, numbers, underscores, or hyphens');
+    const owner=await this.repo.getProfileByHandle(handle);if(owner&&owner.accountId!==actor)throw new DomainError('handle_taken','That Scion username is already taken',409);
     if(avatarUrl&&!/^https:\/\//.test(avatarUrl))throw new DomainError('invalid_avatar','Avatar URL must use HTTPS');
     const profile={accountId:actor,displayName,handle,bio,avatarUrl,createdAt:existing?.createdAt??now,updatedAt:now};await this.repo.putProfile(profile);return profile;
   }

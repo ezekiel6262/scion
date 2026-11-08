@@ -87,4 +87,5 @@ create index if not exists access_purchases_offer_idx on scion_private.access_pu
 create index if not exists ledger_entries_account_idx on scion_private.ledger_entries(account_id, created_at desc);
 create index if not exists product_objects_type_created_idx on scion_private.product_objects(object_type, created_at desc);
 create index if not exists product_objects_strategy_idx on scion_private.product_objects(strategy_id, object_type, created_at desc);
+create unique index if not exists product_profiles_handle_unique_idx on scion_private.product_objects(lower(payload->>'handle')) where object_type='profile';
 `;

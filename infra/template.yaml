@@ -210,6 +210,11 @@ Resources:
       Environment:
         Variables:
           SCION_AUTH_RECIPIENT: d30lp8j3k8uetx.cloudfront.net
+          AVATAR_BUCKET: !Ref FrontendBucket
+          SCION_SITE_URL: https://d30lp8j3k8uetx.cloudfront.net
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref FrontendBucket
       Events:
         AuthChallenge:
           Type: HttpApi
@@ -228,6 +233,12 @@ Resources:
           Properties:
             ApiId: !Ref ScionApi
             Path: /api/v1/auth/balances
+            Method: ANY
+        AuthAvatar:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/auth/avatar
             Method: ANY
     Metadata:
       BuildMethod: esbuild

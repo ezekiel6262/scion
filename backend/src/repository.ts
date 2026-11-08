@@ -11,7 +11,7 @@ export interface Repository {
   getPurchaseByIdempotency(buyer: string, key: string): Promise<AccessPurchase | undefined>;
   settleAccessPurchase(purchase: AccessPurchase, capability: Capability, entries: LedgerEntry[]): Promise<void>;
   listLedgerEntries(account: string): Promise<LedgerEntry[]>;
-  getProfile(account: string): Promise<Profile | undefined>; putProfile(value: Profile): Promise<void>;
+  getProfile(account: string): Promise<Profile | undefined>; getProfileByHandle(handle:string):Promise<Profile|undefined>; putProfile(value: Profile): Promise<void>;
   putProductObject(value:ProductObject):Promise<void>; getProductObject(id:string):Promise<ProductObject|undefined>; deleteProductObject(id:string):Promise<void>; listProductObjects(type:ProductObject['objectType']):Promise<ProductObject[]>;
 }
 
@@ -36,6 +36,7 @@ export class MemoryRepository implements Repository {
   async settleAccessPurchase(purchase:AccessPurchase,capability:Capability,entries:LedgerEntry[]){const existing=await this.getPurchaseByIdempotency(purchase.buyer,purchase.idempotencyKey);if(existing)return;this.purchases.set(purchase.id,structuredClone(purchase));this.capabilities.set(capability.id,structuredClone(capability));for(const entry of entries)this.ledger.set(entry.id,structuredClone(entry));}
   async listLedgerEntries(account:string){return [...this.ledger.values()].filter(e=>e.account===account).map(e=>structuredClone(e));}
   async getProfile(account:string){const value=this.profiles.get(account);return value&&structuredClone(value);}
+  async getProfileByHandle(handle:string){const value=[...this.profiles.values()].find(profile=>profile.handle.toLowerCase()===handle.toLowerCase());return value&&structuredClone(value);}
   async putProfile(value:Profile){this.profiles.set(value.accountId,structuredClone(value));}
   async putProductObject(value:ProductObject){this.objects.set(value.id,structuredClone(value));}
   async getProductObject(id:string){const value=this.objects.get(id);return value&&structuredClone(value);}
