@@ -9,6 +9,8 @@ create table if not exists scion_private.strategies (
   royalty_bps integer not null check (royalty_bps between 0 and 10000),
   created_at timestamptz not null default now()
 );
+alter table scion_private.strategies drop constraint if exists strategies_visibility_check;
+alter table scion_private.strategies add constraint strategies_visibility_check check (visibility in ('public','sealed','public-metrics-private-content'));
 create table if not exists scion_private.strategy_versions (
   id text primary key, strategy_id text not null references scion_private.strategies(id) on delete cascade,
   semver text not null, owner_account text not null,

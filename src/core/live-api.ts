@@ -31,7 +31,7 @@ export type CreateLiveStrategy = {
   royaltyBps: number;
   holdingsProof:string;
 };
-export type LiveProfile = { accountId:string; displayName:string; handle:string; bio:string; avatarUrl?:string; createdAt:string; updatedAt:string };
+export type LiveProfile = { accountId:string; displayName:string; handle:string; bio:string; avatarUrl?:string; demo?:boolean; createdAt:string; updatedAt:string };
 export type LiveHolding = { asset:string; chain:'near'; contractId?:string; units:string; raw:string; decimals:number; usdPrice?:number; observedAt:string };
 export type LiveBalances = { accountId:string; network:'mainnet'; observedAt:string; holdings:LiveHolding[]; proof:string };
 export type LiveExecution = {id:string;executor:string;versionId:string;intentHash:string;policyHash:string;mode:'live'|'simulated';status:string;createdAt:string};
@@ -47,7 +47,7 @@ export type LiveCommerce={paymentsEnabled:boolean;paymentConfig?:{contractId:str
 export type LiveInviteStatus={required:boolean;admitted:boolean;remaining:number;invites:{id:string;usedBy?:string;createdAt:string}[]};
 export type LiveAgentPolicy={allowedAssets:string[];maxTradeMinor:number;dailyLimitMinor:number;maxAllocationBps:number;maxSlippageBps:number;maxLeverageBps:number;requiresOwnerApproval:boolean};
 export type LiveAgentProposal={id:string;agentId:string;action:'watch'|'trade';thesis:string;rationale:string;asset?:string;side?:'buy'|'sell';notionalMinor?:number;confidence:number;status:string;executionState:string;createdAt:string};
-export type LiveAgent={id:string;owner:string;name:string;handle:string;description:string;mode:'research'|'proposal'|'bounded';status:'active'|'paused'|'revoked';visibility:'public'|'private';executionAccount?:string;automationReady:boolean;policy:LiveAgentPolicy;policyHash:string;stats:{proposals:number;wins:number;losses:number;verifiedExecutions:number};proposals?:LiveAgentProposal[];createdAt:string;updatedAt:string};
+export type LiveAgent={id:string;owner:string;name:string;handle:string;description:string;mode:'research'|'proposal'|'bounded';status:'active'|'paused'|'revoked';visibility:'public'|'private';executionAccount?:string;automationReady:boolean;scheduleEnabled?:boolean;scheduleHours?:number;demo?:boolean;policy:LiveAgentPolicy;policyHash:string;stats:{proposals:number;wins:number;losses:number;verifiedExecutions:number};proposals?:LiveAgentProposal[];createdAt:string;updatedAt:string};
 
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };

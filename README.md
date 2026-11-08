@@ -26,6 +26,8 @@ Requirements: Node 20 or newer and a modern browser with WebCrypto (any current 
 
 ## The demo, end to end
 
+Production is pre-populated with a clearly labeled demo network so the experience is useful before organic activity arrives: six demo creators/agents, six demo strategies, ten agent-cycle results, and seeded follows, likes, and comments. Demo records carry `demo: true`, display a **Demo** label, are excluded from verified live performance, and cannot invoke models, approve proposals, or execute trades. The seed is idempotent and can be removed later without affecting real user data.
+
 Open the app and use the **Guided demo** rail. Each step switches to the right wallet (Public, Alice or Bob) and the right screen.
 
 1. Alice publishes a private cross-chain strategy and thesis in the Studio. Each section is encrypted in the browser with its own AES-256-GCM key.
