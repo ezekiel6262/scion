@@ -309,7 +309,7 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
       <a href="#proof">Proof</a>
     </nav>
     <div class="end">
-      <a class="btn" href="#" data-link="repo">GitHub</a>
+      <a class="btn" href="/docs" data-link="repo">Docs</a>
       <a class="btn primary" href="/app/" data-link="app">Launch app</a>
     </div>
   </div>
@@ -335,8 +335,8 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
 
   <div class="facts">
     <div class="wrap">
-      <div class="fact"><b>$34.78B</b><span>NEAR Intents cumulative volume, 13 Oct 2026</span><br /><a href="https://www.bitcoin.com/price/near-protocol-near" target="_blank" rel="noopener noreferrer">Source</a></div>
-      <div class="fact"><b>9</b><span>Key types, from a 24-hour delay to a fork right</span></div>
+      <div class="fact"><b>$34.78B</b><span>NEAR Intents cumulative volume, 13 Oct 2026</span><br /><a href="https://www.near.org/blog/chain-signatures-tee" target="_blank" rel="noopener noreferrer">Official NEAR update</a></div>
+      <div class="fact"><b>5</b><span>Access key types, from a 24-hour delay to a fork right</span></div>
       <div class="fact"><b>5</b><span>Sections per strategy, each sealed with its own key</span></div>
       <div class="fact"><b>0</b><span>Funds Scion ever holds. You sign every trade.</span></div>
     </div>
@@ -484,8 +484,8 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
           <div class="rows"><div><span>Volume falls 3 weeks in a row</span><b class="loss">Tripped</b></div><div><span>NEAR 18% below entry</span><b class="gain">Clear</b></div></div>
         </article>
         <article class="tile s3 reveal-up">
-          <h3>Trade anything, from one place.</h3>
-          <p>Swap on NEAR, or across chains through NEAR Intents, then publish what you hold as a strategy without selling it.</p>
+          <h3>Trade any routable asset, from one place.</h3>
+          <p>Swap supported assets on NEAR or across chains through NEAR Intents, then publish what you hold as a strategy without selling it.</p>
           <div class="route"><span class="node">USDC on Base</span><span class="via" aria-hidden="true"></span><span class="node">NEAR Intents</span><span class="via" aria-hidden="true"></span><span class="node">SOL, NVDAx, NEAR</span></div>
         </article>
         <article class="tile s3 reveal-up">
@@ -494,7 +494,7 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
           <div class="rows"><div><span>NEAR</span><span><span class="faint">45% to</span> <b>35%</b> <b class="loss">-10 pts</b></span></div><div><span>USDC</span><span><span class="faint">25% to</span> <b>35%</b> <b class="gain">+10 pts</b></span></div></div>
         </article>
         <article class="tile s4 inv reveal-up">
-          <h3>NFTs that earn.</h3>
+          <span class="pill" style="justify-self:start">Protocol demo</span><h3>NFTs that earn.</h3>
           <p>Royalty-share NFTs pay holders a cut of every royalty a strategy’s forks send back. A call that hits its target mints a trophy anyone can verify.</p>
           <div class="nfts" id="nfts">
             <div class="nft t"><span style="font-weight:600">Trophy</span><div><big>+38.1%</big><span>MOTH trench call</span></div><span class="mono" style="opacity:.7">seal 72a78c4d31cb4ae6</span></div>
@@ -555,7 +555,7 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
               </g>
               <g font-size="12" font-weight="700" fill="var(--fg)" font-family="Geist, sans-serif" text-anchor="middle"><text x="170" y="153">10</text><text x="400" y="98">20</text><text x="583" y="47">29.3</text><text x="606" y="20">34.78</text></g>
             </svg>
-            <p class="sources">Sources: <a href="https://www.mexc.com/it-IT/news/492807" target="_blank" rel="noopener noreferrer">Coinspeaker via Dune</a>, <a href="https://cryptobriefing.com/near-intents-20b-transaction-volume/" target="_blank" rel="noopener noreferrer">Crypto Briefing</a>, <a href="https://cointelegraph.com/markets/near-price-surge-intents-zcash-privacy" target="_blank" rel="noopener noreferrer">Cointelegraph</a>, <a href="https://www.bitcoin.com/price/near-protocol-near" target="_blank" rel="noopener noreferrer">Bitcoin.com from NEAR’s revenue dashboard</a>.</p>
+            <p class="sources">Sources: <a href="https://www.near.org/blog/chain-signatures-tee" target="_blank" rel="noopener noreferrer">Official NEAR update</a>, <a href="https://www.mexc.com/it-IT/news/492807" target="_blank" rel="noopener noreferrer">Coinspeaker via Dune</a>, <a href="https://cryptobriefing.com/near-intents-20b-transaction-volume/" target="_blank" rel="noopener noreferrer">Crypto Briefing</a>, and <a href="https://cointelegraph.com/markets/near-price-surge-intents-zcash-privacy" target="_blank" rel="noopener noreferrer">Cointelegraph</a>.</p>
           </div>
         </div>
         <div>
@@ -589,7 +589,7 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
         <article class="tile reveal-up"><h3>Keys that can’t be shared</h3><p>Each key is a signed capability bound to the buyer’s wallet key. Widen its scope and the signature breaks.</p></article>
         <article class="tile reveal-up"><h3>Calls that can’t be backdated</h3><p>A play’s seal is public from the moment it is posted, so a reveal can always be checked against it.</p></article>
       </div>
-      <p class="honest">Hackathon prototype: encryption, signatures, key binding, receipts and attestations run for real in your browser. NEAR Intents settlement, wallets and balances are simulated, and the access gateway is headed for a secure enclave.</p>
+      <p class="honest">Live product: wallet authentication, profiles, strategies, market discovery, NEAR Intents quotes, wallet-approved swaps, agents, and production persistence are connected. Seeded activity is labeled Demo; trophy and royalty-share NFT mechanics remain protocol demonstrations.</p>
     </div>
   </section>
 
@@ -611,7 +611,7 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
         <svg viewBox="0 0 400 400" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2"><path d="M200 380V240M200 240c0-60 40-90 110-90M200 280c0-50-40-80-110-80M310 150c40 0 60-30 60-70M90 200c-40 0-60-30-60-60M310 150c0-40 20-60 40-80"/></g><g fill="currentColor"><circle cx="200" cy="380" r="9"/><circle cx="200" cy="240" r="8"/><circle cx="310" cy="150" r="8"/><circle cx="90" cy="200" r="8"/><circle cx="370" cy="80" r="7"/><circle cx="30" cy="140" r="7"/><circle cx="350" cy="70" r="6"/></g></svg>
         <h2 id="final-h">Your best idea deserves a family tree.</h2>
         <p>Publish it, prove it, and let it grow, without ever giving away your hand.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn lg" href="/app/" data-link="app">Launch the app</a><a class="btn lg ghost" href="#" data-link="repo">Read the code</a></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn lg" href="/app/" data-link="app">Launch the app</a><a class="btn lg ghost" href="/docs" data-link="repo">Read the docs</a></div>
       </div>
     </div>
   </section>
@@ -620,14 +620,14 @@ footer a { color: var(--fg-2); text-decoration: none; margin-left: 18px; }
 <footer>
   <div class="wrap">
     <span>Scion, built on NEAR. Not financial advice.</span>
-    <span><a href="#film">How it works</a><a href="#thesis">NEAR thesis</a><a href="#" data-link="repo">GitHub</a><a href="/app/" data-link="app">App</a></span>
+    <span><a href="#film">How it works</a><a href="#thesis">NEAR thesis</a><a href="/docs" data-link="repo">Docs</a><a href="/app/" data-link="app">App</a></span>
   </div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // Where the buttons point. Set repo to your public repository before launch.
-const LINKS = { app: '/app/', repo: '#' };
+const LINKS = { app: '/app/', repo: '/docs' };
 document.querySelectorAll('[data-link]').forEach((a) => { a.href = LINKS[a.dataset.link] ?? a.href; });
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;

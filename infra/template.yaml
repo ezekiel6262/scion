@@ -209,7 +209,6 @@ Resources:
         Minify: true
         Target: es2022
         Sourcemap: true
-        OutExtension: ['.js=.cjs']
 
   MigrationFunction:
     Type: AWS::Serverless::Function
@@ -230,7 +229,6 @@ Resources:
         Minify: true
         Target: es2022
         Sourcemap: true
-        OutExtension: ['.js=.cjs']
 
   AuthFunction:
     Type: AWS::Serverless::Function
@@ -290,7 +288,6 @@ Resources:
         Minify: true
         Target: es2022
         Sourcemap: true
-        OutExtension: ['.js=.cjs']
 
   AgentRunnerFunction:
     Type: AWS::Serverless::Function
@@ -328,7 +325,6 @@ Resources:
         Minify: true
         Target: es2022
         Sourcemap: true
-        OutExtension: ['.js=.cjs']
 
   FrontendBucket:
     Type: AWS::S3::Bucket
