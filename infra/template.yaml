@@ -359,7 +359,10 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
-        Aliases: !If [HasCustomDomain, [!Ref CustomDomainName], !Ref 'AWS::NoValue']
+        Aliases: !If
+          - HasCustomDomain
+          - [!Ref CustomDomainName, !Sub 'www.${CustomDomainName}']
+          - !Ref 'AWS::NoValue'
         ViewerCertificate: !If
           - HasCustomDomain
           - {AcmCertificateArn: !Ref CloudFrontCertificateArn, SslSupportMethod: sni-only, MinimumProtocolVersion: TLSv1.2_2021}
@@ -522,8 +525,10 @@ Resources:
       TreatMissingData: notBreaching
 
 Outputs:
-  SiteUrl: {Value: !Sub 'https://${FrontendDistribution.DomainName}'}
-  ApiUrl: {Value: !Sub 'https://${FrontendDistribution.DomainName}/api'}
+  SiteUrl:
+    Value: !If [HasCustomDomain, !Sub 'https://${CustomDomainName}', !Sub 'https://${FrontendDistribution.DomainName}']
+  ApiUrl:
+    Value: !If [HasCustomDomain, !Sub 'https://${CustomDomainName}/api', !Sub 'https://${FrontendDistribution.DomainName}/api']
   FrontendBucketName: {Value: !Ref FrontendBucket}
   DistributionId: {Value: !Ref FrontendDistribution}
   MigrationFunctionName: {Value: !Ref MigrationFunction}
