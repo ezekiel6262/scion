@@ -3,8 +3,9 @@ import { DomainError } from './domain.ts'; import type { ScionService } from './
 const json=(body:unknown,status=200,requestId?:string)=>Response.json(body,{status,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,idempotency-key,x-near-account,x-view-key','access-control-allow-methods':'GET,POST,OPTIONS','x-request-id':requestId??''}});
 export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(request:Request)=>{
   const requestId=randomUUID(),url=new URL(request.url),path=(url.pathname.replace(/^\/api(?=\/|$)/,'').replace(/\/$/,'')||'/');
-  if(request.method==='OPTIONS')return json({},204,requestId); const actor=resolveActor(request,auth);
+  if(request.method==='OPTIONS')return json({},204,requestId);let actor:string|undefined;
   try{
+    actor=resolveActor(request,auth);const bearer=bearerToken(request);if(actor&&bearer)await service.ensureSession(actor,bearer,request.headers.get('user-agent')??'Unknown device');
     console.info(JSON.stringify({event:'request',requestId,method:request.method,path,actor}));
     if(request.method==='GET'&&path==='/health')return json({ok:true,service:'scion-api',mode:process.env.SCION_EXECUTION_MODE??'simulated'},200,requestId);
     if(request.method==='POST'&&path==='/v1/auth/challenge'){const b=await request.json() as any;return json({data:await auth.challenge(b.accountId,b.publicKey)},201,requestId);}
@@ -17,6 +18,11 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     social=path.match(/^\/v1\/strategies\/([^/]+)\/comments$/);if(request.method==='GET'&&social)return json({data:await service.comments(social[1])},200,requestId);if(request.method==='POST'&&social)return json({data:await service.addComment(requireActor(actor),social[1],await request.json())},201,requestId);
     if(request.method==='GET'&&path==='/v1/notifications')return json({data:await service.notifications(requireActor(actor))},200,requestId);
     if(request.method==='POST'&&path==='/v1/notifications/read')return json({data:await service.markNotificationsRead(requireActor(actor))},200,requestId);
+    if(request.method==='GET'&&path==='/v1/security/sessions')return json({data:await service.sessions(requireActor(actor),bearer)},200,requestId);
+    let security=path.match(/^\/v1\/security\/sessions\/(.+)\/revoke$/);if(request.method==='POST'&&security)return json({data:await service.revokeSession(requireActor(actor),decodeURIComponent(security[1]))},200,requestId);
+    security=path.match(/^\/v1\/moderation\/blocks\/(.+)$/);if(request.method==='POST'&&security)return json({data:await service.toggleBlock(requireActor(actor),decodeURIComponent(security[1]))},200,requestId);
+    if(request.method==='POST'&&path==='/v1/moderation/reports')return json({data:await service.report(requireActor(actor),await request.json())},201,requestId);
+    if(request.method==='GET'&&path==='/v1/security/audit')return json({data:await service.auditLog(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/my/strategies')return json({data:await service.myStrategies(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/me')return json({data:{accountId:requireActor(actor),profile:await service.profile(requireActor(actor))}},200,requestId);
     if(request.method==='POST'&&path==='/v1/profile')return json({data:await service.saveProfile(requireActor(actor),await request.json())},200,requestId);
@@ -38,3 +44,4 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
 };
 function requireActor(actor?:string){if(!actor)throw new DomainError('unauthorized','A valid bearer session is required',401);return actor;}
 function resolveActor(request:Request,auth:WalletAuthService){const authorization=request.headers.get('authorization');if(authorization?.startsWith('Bearer '))return auth.actorFromToken(authorization.slice(7));const dev=request.headers.get('x-near-account');if(dev&&(process.env.NODE_ENV!=='production'||process.env.SCION_ALLOW_DEV_HEADER==='true'))return dev;return undefined;}
+function bearerToken(request:Request){const value=request.headers.get('authorization');return value?.startsWith('Bearer ')?value.slice(7):undefined;}

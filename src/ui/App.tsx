@@ -17,6 +17,7 @@ import { Collection, PortfolioPage } from './Wealth';
 import { useLive } from './live';
 import { LiveStrategyPage } from './LiveProduct';
 import { LivePublicProfilePage } from './LiveSocial';
+import { LiveSecurity } from './LiveSecurity';
 
 const aliceStrat = (s: State) => Object.values(s.strategies).find((x) => x.owner === 'alice' && !x.seeded && !x.parent);
 
@@ -148,12 +149,12 @@ export function App() {
   const myKeys = me ? engine.activeGrants(me).length : 0;
   const livePlays = Object.values(s.plays).filter((p) => p.status === 'sealed').length;
   const groups: [string, [Route['name'], string, string, number?][]][] = [
-    ['Discover', [['home', 'Home', 'home'], ['plays', 'Plays', 'target', livePlays], ['explore', 'Explore', 'compass']]],
-    ['You', [['portfolio', 'Portfolio', 'pie'], ['trade', 'Trade', 'swap'], ['keys', 'My keys', 'key', myKeys], ['earnings', 'Earnings', 'coins'], ['collection', 'Collection', 'gem']]],
-    ['Protocol', [['security', 'Security log', 'shield']]],
+    ['Discover', [['home', 'Home', 'home'], ['explore', 'Explore', 'compass']]],
+    ['You', [['portfolio', 'Portfolio', 'pie'], ['trade', 'Trade', 'swap']]],
+    ['Account', [['account', 'Profile & wallet', 'user'], ['security', 'Security', 'shield']]],
   ];
   const nav = groups.flatMap(([, items]) => items);
-  const mobileNav: [Route['name'], string, string][] = [['home', 'Home', 'home'], ['plays', 'Plays', 'target'], ['explore', 'Explore', 'compass'], ['trade', 'Trade', 'swap'], ['portfolio', 'Portfolio', 'pie']];
+  const mobileNav: [Route['name'], string, string][] = [['home', 'Home', 'home'], ['explore', 'Explore', 'compass'], ['trade', 'Trade', 'swap'], ['portfolio', 'Portfolio', 'pie'],['account','Account','user']];
   const notices = me ? s.notices.filter((n) => n.to === me) : [];
   const unread = live.session?live.notifications.filter((n) => !n.read).length:notices.filter((n) => !n.read).length;
   const bell = (
@@ -219,7 +220,7 @@ export function App() {
             {route.name === 'collection' && <Collection />}
             {route.name === 'keys' && <Keys />}
             {route.name === 'earnings' && <Earnings />}
-            {route.name === 'security' && <Security />}
+            {route.name === 'security' && <LiveSecurity />}
             {route.name === 'account' && <AccountPage />}
             {route.name === 'strategy' && <StrategyPage id={route.id} tab={route.tab} />}
             {route.name === 'live-strategy' && <LiveStrategyPage id={route.id} />}

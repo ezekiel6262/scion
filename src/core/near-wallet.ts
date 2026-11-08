@@ -19,6 +19,7 @@ async function connectExistingWallet(api:LiveApi):Promise<LiveSession>{
 async function restoreExistingWallet(){try{const connected=await connector.getConnectedWallet();activeWallet=connected.wallet;return connected;}catch{return undefined;}}
 async function disconnectExistingWallet(){if(activeWallet)await connector.disconnect(activeWallet);activeWallet=undefined;}
 export const connectedWalletAdapter:WalletAuthAdapter={mode:'connected-wallet',label:'Connect an existing wallet',connect:connectExistingWallet,restore:restoreExistingWallet,disconnect:disconnectExistingWallet};
+export const embeddedWalletStatus=()=>{const domain=import.meta.env.VITE_NEAR_AUTH_DOMAIN,clientId=import.meta.env.VITE_NEAR_AUTH_CLIENT_ID,relayer=import.meta.env.VITE_NEAR_AUTH_RELAYER_URL;return {configured:!!(domain&&clientId&&relayer),domain,clientId,relayer};};
 export async function connectNear(api:LiveApi):Promise<LiveSession>{return connectedWalletAdapter.connect(api);}
 export async function restoreNearWallet(){return connectedWalletAdapter.restore();}
 export async function disconnectNear(){return connectedWalletAdapter.disconnect();}

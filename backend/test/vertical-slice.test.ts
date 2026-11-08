@@ -7,6 +7,10 @@ import { signToken } from '../src/crypto.ts';
 
 test('Scion usernames are unique regardless of letter case',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret');await service.saveProfile('one.near',{displayName:'One',handle:'Alpha_User',bio:'',avatarUrl:'https://example.com/avatar.webp'});await assert.rejects(()=>service.saveProfile('two.near',{displayName:'Two',handle:'alpha_user',bio:''}),/already taken/i);assert.equal((await service.profile('one.near'))?.handle,'alpha_user');});
 
+test('device sessions revoke fail closed',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret');const id=await service.ensureSession('one.near','signed-session-token','Edge');assert.equal((await service.sessions('one.near','signed-session-token'))[0].current,true);await service.revokeSession('one.near',id);await assert.rejects(()=>service.ensureSession('one.near','signed-session-token','Edge'),/revoked/i);});
+
+test('blocking hides creators and reports create private audit events',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret');await service.seed();await service.saveProfile('viewer.near',{displayName:'Viewer',handle:'viewer',bio:''});assert.equal((await service.feed('viewer.near')).some(item=>item.strategy.owner==='alice.near'),true);await service.toggleBlock('viewer.near','alice.near');assert.equal((await service.feed('viewer.near')).some(item=>item.strategy.owner==='alice.near'),false);await service.report('viewer.near',{targetType:'profile',targetId:'alice.near',reason:'Misleading performance claims'});assert.equal((await service.auditLog('viewer.near')).some(event=>event.event==='report.created'),true);});
+
 test('Alice grants access, Bob forks and executes, then access is revoked', async () => {
   const repo = new MemoryRepository();
   const service = new ScionService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));

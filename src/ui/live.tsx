@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LiveApi, type CreateLiveStrategy, type LiveBalances, type LiveComment, type LiveExecution, type LiveFeedItem, type LiveHealth, type LiveNotification, type LiveProfile, type LivePublicProfile, type LiveStrategy, type LiveStrategyDetail } from '../core/live-api';
+import { LiveApi, type CreateLiveStrategy, type LiveAuditEvent, type LiveBalances, type LiveComment, type LiveDeviceSession, type LiveExecution, type LiveFeedItem, type LiveHealth, type LiveNotification, type LiveProfile, type LivePublicProfile, type LiveStrategy, type LiveStrategyDetail } from '../core/live-api';
 import { connectNear, disconnectNear, restoreNearWallet, type LiveSession } from '../core/near-wallet';
 
 type LiveState = {
@@ -27,6 +27,7 @@ type LiveState = {
   recordExecution:(input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn?:string;amountOut?:string})=>Promise<LiveExecution>;
   toggleFollow:(account:string)=>Promise<void>;toggleLike:(strategyId:string)=>Promise<void>;comments:(strategyId:string)=>Promise<LiveComment[]>;addComment:(strategyId:string,body:string)=>Promise<LiveComment>;createFork:(input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string})=>Promise<LiveStrategy>;markNotificationsRead:()=>Promise<void>;
   loadProfile:(account:string)=>Promise<LivePublicProfile>;
+  loadSecurity:()=>Promise<{sessions:LiveDeviceSession[];audit:LiveAuditEvent[]}>;revokeSession:(id:string)=>Promise<void>;blockAccount:(account:string)=>Promise<boolean>;report:(input:{targetType:'profile'|'strategy'|'comment';targetId:string;reason:string})=>Promise<void>;
 };
 
 const LiveCtx = createContext<LiveState | null>(null);
@@ -35,7 +36,7 @@ const restoredSession=()=>{try{const value=JSON.parse(localStorage.getItem(SESSI
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => new LiveApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), []);
-  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'uploadAvatar'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'|'toggleFollow'|'toggleLike'|'comments'|'addComment'|'createFork'|'markNotificationsRead'|'loadProfile'>>({ status: 'connecting', strategies: [], feed:[],notifications:[],session: restoredSession(), publishing: false, balancesLoading:false });
+  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'uploadAvatar'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'|'toggleFollow'|'toggleLike'|'comments'|'addComment'|'createFork'|'markNotificationsRead'|'loadProfile'|'loadSecurity'|'revokeSession'|'blockAccount'|'report'>>({ status: 'connecting', strategies: [], feed:[],notifications:[],session: restoredSession(), publishing: false, balancesLoading:false });
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, status: current.refreshedAt ? current.status : 'connecting' }));
     try {
@@ -84,7 +85,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const createFork=useCallback(async(input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string})=>{const result=await api.createFork(requireSession().token,input);await refresh();return {...result.strategy,latestVersion:result.version};},[api,refresh,state.session]);
   const markNotificationsRead=useCallback(async()=>{const session=requireSession();await api.readNotifications(session.token);setState(current=>({...current,notifications:current.notifications.map(n=>({...n,read:true}))}));},[api,state.session]);
   const loadProfile=useCallback((account:string)=>api.publicProfile(account,state.session?.token),[api,state.session]);
-  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile,uploadAvatar, refreshBalances, loadStrategy, updateStrategy, recordExecution,toggleFollow,toggleLike,comments,addComment,createFork,markNotificationsRead,loadProfile }}>{children}</LiveCtx.Provider>;
+  const loadSecurity=useCallback(async()=>{const session=requireSession();const [sessions,audit]=await Promise.all([api.sessions(session.token),api.audit(session.token)]);return {sessions,audit};},[api,state.session]);
+  const revokeSession=useCallback(async(id:string)=>{const session=requireSession();await api.revokeSession(session.token,id);},[api,state.session]);
+  const blockAccount=useCallback(async(account:string)=>{const session=requireSession();return (await api.block(session.token,account)).blocked;},[api,state.session]);
+  const report=useCallback(async(input:{targetType:'profile'|'strategy'|'comment';targetId:string;reason:string})=>{const session=requireSession();await api.report(session.token,input);},[api,state.session]);
+  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile,uploadAvatar, refreshBalances, loadStrategy, updateStrategy, recordExecution,toggleFollow,toggleLike,comments,addComment,createFork,markNotificationsRead,loadProfile,loadSecurity,revokeSession,blockAccount,report }}>{children}</LiveCtx.Provider>;
 }
 
 async function prepareAvatar(file:File){if(!file.type.startsWith('image/'))throw new Error('Choose an image file.');if(file.size>8_000_000)throw new Error('Choose an image smaller than 8 MB.');const bitmap=await createImageBitmap(file),size=512,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable.');const side=Math.min(bitmap.width,bitmap.height),sx=(bitmap.width-side)/2,sy=(bitmap.height-side)/2;context.drawImage(bitmap,sx,sy,side,side,0,0,size,size);bitmap.close();const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Could not process image.')),'image/webp',.82));if(blob.size>600000)throw new Error('Processed profile picture is too large.');const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.subarray(offset,offset+0x8000));return {contentType:'image/webp',data:btoa(binary)};}
