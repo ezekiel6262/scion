@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { NearTransactionVerifier } from '../src/near-transactions.ts';
+import { signToken, verifyToken } from '../src/crypto.ts';
+
+const secret='verification-secret',actor='buyer.near',txHash='11111111111111111111111111111111',contract='usdc.near',treasury='scion.near',now=()=>new Date('2026-11-08T12:00:00Z');
+const plan=(transfers=[{receiverId:'creator.near',amountMinor:850000,kind:'creator_revenue'},{receiverId:'upstream.near',amountMinor:50000,kind:'upstream_royalty'},{receiverId:treasury,amountMinor:100000,kind:'protocol_fee'}])=>{const value={kind:'checkout-plan',sub:actor,offerId:'offer-1',contractId:contract,protocolReceiver:treasury,amountMinor:1000000,currency:'USDC',transfers,exp:'2026-11-08T12:10:00Z'};return signToken(Buffer.from(JSON.stringify(value)).toString('base64url'),secret);};
+const rpc=(transfers:{receiverId:string;amountMinor:number}[])=>({ok:true,json:async()=>({result:{transaction:{signer_id:actor,receiver_id:contract,actions:transfers.map(value=>({FunctionCall:{method_name:'ft_transfer',args:Buffer.from(JSON.stringify({receiver_id:value.receiverId,amount:String(value.amountMinor)})).toString('base64'),deposit:'1'}}))},status:{SuccessValue:''}}})}) as Response;
+
+test('finalized USDC split produces a short-lived purchase proof',async()=>{const original=globalThis.fetch;globalThis.fetch=async()=>rpc([{receiverId:'creator.near',amountMinor:850000},{receiverId:'upstream.near',amountMinor:50000},{receiverId:treasury,amountMinor:100000}]);try{const result=await new NearTransactionVerifier(secret,contract,treasury,now).verifyPayment(actor,{txHash,checkoutPlan:plan()}),raw=verifyToken(result.proof,secret);assert.ok(raw);const proof=JSON.parse(Buffer.from(raw!,'base64url').toString());assert.equal(proof.offerId,'offer-1');assert.equal(proof.amountMinor,1000000);assert.equal(proof.protocolReceiver,treasury);}finally{globalThis.fetch=original;}});
+
+test('a changed recipient or amount fails closed',async()=>{const original=globalThis.fetch;globalThis.fetch=async()=>rpc([{receiverId:'attacker.near',amountMinor:850000},{receiverId:'upstream.near',amountMinor:50000},{receiverId:treasury,amountMinor:100000}]);try{await assert.rejects(()=>new NearTransactionVerifier(secret,contract,treasury,now).verifyPayment(actor,{txHash,checkoutPlan:plan()}),/do not match/i);}finally{globalThis.fetch=original;}});

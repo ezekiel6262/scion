@@ -11,6 +11,8 @@ test('device sessions revoke fail closed',async()=>{const repo=new MemoryReposit
 
 test('blocking hides creators and reports create private audit events',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret');await service.seed();await service.saveProfile('viewer.near',{displayName:'Viewer',handle:'viewer',bio:''});assert.equal((await service.feed('viewer.near')).some(item=>item.strategy.owner==='alice.near'),true);await service.toggleBlock('viewer.near','alice.near');assert.equal((await service.feed('viewer.near')).some(item=>item.strategy.owner==='alice.near'),false);await service.report('viewer.near',{targetType:'profile',targetId:'alice.near',reason:'Misleading performance claims'});assert.equal((await service.auditLog('viewer.near')).some(event=>event.event==='report.created'),true);});
 
+test('moderation queue is restricted and records resolution',async()=>{const service=new ScionService(new MemoryRepository(),new SimulatedNearIntentsAdapter(),'test-secret',undefined,undefined,false,true,undefined,['admin.near']);const report=await service.report('viewer.near',{targetType:'profile',targetId:'bad.near',reason:'Repeated impersonation'});await assert.rejects(()=>service.moderationQueue('viewer.near'),/moderator/i);assert.equal((await service.moderationQueue('admin.near')).length,1);assert.equal((await service.resolveReport('admin.near',report.id,{status:'resolved',note:'Account reviewed'})).status,'resolved');});
+
 test('beta invites are single-use and production checkout fails closed',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret',undefined,undefined,true,false);await service.seed();const {code}=await service.createInvite('alice.near');await service.saveProfile('new.near',{displayName:'New',handle:'new_user',bio:'',inviteCode:code});await assert.rejects(()=>service.saveProfile('other.near',{displayName:'Other',handle:'other_user',bio:'',inviteCode:code}),/already used|invalid/i);await assert.rejects(()=>service.purchaseAccess('new.near',{offerId:'missing'},'purchase-key'),/disabled/i);});
 
 test('Alice grants access, Bob forks and executes, then access is revoked', async () => {
@@ -67,7 +69,9 @@ test('strategy publishing is bounded by a fresh server-signed holdings proof', a
   assert.equal(result.strategy.owner,'alice.near');
   const updated=await service.updateStrategy('alice.near',result.strategy.id,{name:'Real NEAR v2',visibility:'public'});
   assert.equal(updated.version.semver,'1.0.1');assert.equal(updated.strategy.visibility,'public');
-  const receipt=await service.recordLiveExecution('alice.near',{strategyId:result.strategy.id,txHash:'5N8wCzYzJwFu9M7EDqQJZV7mGQ4jX8nReAL12345',status:'SUCCESS',depositAddress:'deposit.near'});
+  const txHash='5N8wCzYzJwFu9M7EDqQJZV7mGQ4jX8nReAL12345',depositAddress='deposit.near',amountIn='1000';
+  const executionPayload=Buffer.from(JSON.stringify({kind:'near-intents-execution',sub:'alice.near',txHash,depositAddress,amountIn,settledAt:now().toISOString(),exp:'2026-11-06T12:10:00Z'})).toString('base64url');
+  const receipt=await service.recordLiveExecution('alice.near',{strategyId:result.strategy.id,txHash,status:'SUCCESS',depositAddress,amountIn,verificationProof:signToken(executionPayload,secret)});
   assert.equal(receipt.mode,'live');assert.equal(receipt.status,'settled');
   const detail:any=await service.strategyDetail(undefined,result.strategy.id);assert.equal(detail.version.thesis.summary,base.thesis.summary);assert.equal(detail.executions.length,1);assert.equal(detail.versions.length,2);
   await assert.rejects(()=>service.createStrategy('bob.near',{...base,holdingsProof:signToken(payload,secret)}),/another account/i);

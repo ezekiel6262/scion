@@ -8,8 +8,9 @@ export interface Repository {
   getForkByChildVersion(versionId: string): Promise<ForkEdge | undefined>;
   putExecution(value: ExecutionReceipt): Promise<void>; listExecutions(versionId:string):Promise<ExecutionReceipt[]>;
   putOffer(value: AccessOffer): Promise<void>; getOffer(id: string): Promise<AccessOffer | undefined>;
-  listOffers(account:string):Promise<AccessOffer[]>; listCapabilities(account:string):Promise<Capability[]>; listPurchases(account:string):Promise<AccessPurchase[]>;
+  listOffers(account:string):Promise<AccessOffer[]>; listActiveOffers():Promise<AccessOffer[]>; listCapabilities(account:string):Promise<Capability[]>; listPurchases(account:string):Promise<AccessPurchase[]>;
   getPurchaseByIdempotency(buyer: string, key: string): Promise<AccessPurchase | undefined>;
+  getPurchaseBySettlementRef(reference:string):Promise<AccessPurchase|undefined>;
   settleAccessPurchase(purchase: AccessPurchase, capability: Capability, entries: LedgerEntry[]): Promise<void>;
   listLedgerEntries(account: string): Promise<LedgerEntry[]>;
   getProfile(account: string): Promise<Profile | undefined>; getProfileByHandle(handle:string):Promise<Profile|undefined>; putProfile(value: Profile): Promise<void>;
@@ -34,9 +35,11 @@ export class MemoryRepository implements Repository {
   async putOffer(v:AccessOffer){this.offers.set(v.id,structuredClone(v));}
   async getOffer(id:string){const v=this.offers.get(id);return v&&structuredClone(v);}
   async listOffers(account:string){return [...this.offers.values()].filter(v=>v.issuer===account).map(v=>structuredClone(v));}
+  async listActiveOffers(){return [...this.offers.values()].filter(v=>v.status==='active').map(v=>structuredClone(v));}
   async listCapabilities(account:string){return [...this.capabilities.values()].filter(v=>v.subject===account).map(v=>structuredClone(v));}
   async listPurchases(account:string){return [...this.purchases.values()].filter(v=>v.buyer===account).map(v=>structuredClone(v));}
   async getPurchaseByIdempotency(buyer:string,key:string){const v=[...this.purchases.values()].find(p=>p.buyer===buyer&&p.idempotencyKey===key);return v&&structuredClone(v);}
+  async getPurchaseBySettlementRef(reference:string){const v=[...this.purchases.values()].find(p=>p.settlementRef===reference);return v&&structuredClone(v);}
   async settleAccessPurchase(purchase:AccessPurchase,capability:Capability,entries:LedgerEntry[]){const existing=await this.getPurchaseByIdempotency(purchase.buyer,purchase.idempotencyKey);if(existing)return;this.purchases.set(purchase.id,structuredClone(purchase));this.capabilities.set(capability.id,structuredClone(capability));for(const entry of entries)this.ledger.set(entry.id,structuredClone(entry));}
   async listLedgerEntries(account:string){return [...this.ledger.values()].filter(e=>e.account===account).map(e=>structuredClone(e));}
   async getProfile(account:string){const value=this.profiles.get(account);return value&&structuredClone(value);}

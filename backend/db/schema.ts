@@ -86,6 +86,7 @@ create index if not exists executions_version_idx on scion_private.executions(ve
 create index if not exists auth_challenges_expiry_idx on scion_private.auth_challenges(expires_at);
 create index if not exists access_offers_version_idx on scion_private.access_offers(version_id, status);
 create index if not exists access_purchases_offer_idx on scion_private.access_purchases(offer_id, created_at desc);
+create unique index if not exists access_purchases_settlement_ref_idx on scion_private.access_purchases(settlement_ref);
 create index if not exists ledger_entries_account_idx on scion_private.ledger_entries(account_id, created_at desc);
 create index if not exists product_objects_type_created_idx on scion_private.product_objects(object_type, created_at desc);
 create index if not exists product_objects_strategy_idx on scion_private.product_objects(strategy_id, object_type, created_at desc);

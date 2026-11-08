@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
-import { SimulatedNearIntentsAdapter } from '../src/adapters.ts';
+import { SimulatedNearIntentsAdapter, VerifiedUsdcSettlementAdapter } from '../src/adapters.ts';
 import { WalletAuthService } from '../src/auth.ts';
 import { createHandler } from '../src/http.ts';
 import { createAuthStore, createRepository } from '../src/runtime.ts';
@@ -9,7 +9,11 @@ let appPromise: ReturnType<typeof initialize> | undefined;
 async function initialize() {
   const secret = process.env.SCION_SIGNING_SECRET;
   if (!secret) throw new Error('SCION_SIGNING_SECRET is required');
-  const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret,undefined,undefined,true,false);
+  const contract=process.env.NEAR_USDC_CONTRACT,treasury=process.env.SCION_TREASURY_ACCOUNT;
+  const paymentsEnabled=!!(contract&&treasury);
+  const settlement=paymentsEnabled?new VerifiedUsdcSettlementAdapter(secret,contract!,treasury!):undefined;
+  const admins=(process.env.SCION_ADMIN_ACCOUNTS??'').split(',').map(v=>v.trim()).filter(Boolean);
+  const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret,undefined,settlement,true,paymentsEnabled,paymentsEnabled?{contractId:contract!,treasury:treasury!}:undefined,admins);
   await service.seed();
   return createHandler(service, new WalletAuthService(await createAuthStore(), secret));
 }

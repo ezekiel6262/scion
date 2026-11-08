@@ -42,7 +42,8 @@ export type LiveNotification={id:string;actor:string;kind:string;strategyId?:str
 export type LivePublicProfile={profile:LiveProfile;strategies:LiveStrategy[];followers:number;following:number;viewerFollowing:boolean};
 export type LiveDeviceSession={id:string;userAgent:string;createdAt:string;lastSeenAt:string;revoked:boolean;current:boolean};
 export type LiveAuditEvent={id:string;event:string;details:Record<string,unknown>;createdAt:string};
-export type LiveCommerce={paymentsEnabled:boolean;protocolFeeBps:number;earnings:{account:string;currency:'USDC';totalMinor:number;entries:{id:string;kind:string;amountMinor:number;createdAt:string}[]};offers:{id:string;versionId:string;priceMinor:number;status:string;createdAt:string}[];keys:{id:string;versionId:string;scopes:string[];expiresAt:string;status:string;priceMinor:number}[];purchases:{id:string;offerId:string;amountMinor:number;status:string;createdAt:string}[]};
+export type LiveOffer={id:string;issuer:string;versionId:string;scopes:string[];expiresInSeconds:number;priceMinor:number;status:string;createdAt:string};
+export type LiveCommerce={paymentsEnabled:boolean;paymentConfig?:{contractId:string;treasury:string};protocolFeeBps:number;earnings:{account:string;currency:'USDC';totalMinor:number;entries:{id:string;kind:string;amountMinor:number;createdAt:string}[]};offers:LiveOffer[];marketplace:LiveOffer[];keys:{id:string;versionId:string;scopes:string[];expiresAt:string;status:string;priceMinor:number}[];purchases:{id:string;offerId:string;amountMinor:number;status:string;createdAt:string}[]};
 export type LiveInviteStatus={required:boolean;admitted:boolean;remaining:number;invites:{id:string;usedBy?:string;createdAt:string}[]};
 
 type ApiEnvelope<T> = { data: T };
@@ -79,6 +80,11 @@ export class LiveApi {
   async commerce(token:string){return (await this.request<ApiEnvelope<LiveCommerce>>('/v1/account/commerce',{headers:{authorization:`Bearer ${token}`}})).data;}
   async invites(token:string){return (await this.request<ApiEnvelope<LiveInviteStatus>>('/v1/beta/invites',{headers:{authorization:`Bearer ${token}`}})).data;}
   async createInvite(token:string){return (await this.request<ApiEnvelope<{code:string}>>('/v1/beta/invites',{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'})).data;}
+  async createOffer(token:string,input:{versionId:string;scopes:string[];expiresInSeconds:number;priceMinor:number}){return (await this.request<ApiEnvelope<LiveOffer>>('/v1/access/offers',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async checkoutPlan(token:string,offerId:string){return (await this.request<ApiEnvelope<{token:string;contractId:string;amountMinor:number;transfers:{receiverId:string;amountMinor:number;kind:string}[]}>>('/v1/access/checkout-plan',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({offerId})})).data;}
+  async verifyPayment(token:string,txHash:string,checkoutPlan:string){return (await this.request<ApiEnvelope<{proof:string;txHash:string}>>('/v1/auth/transactions/payment',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({txHash,checkoutPlan})})).data;}
+  async purchase(token:string,offerId:string,settlementProof:string,idempotencyKey:string){return (await this.request<ApiEnvelope<{purchase:unknown;capabilityToken:string}>>('/v1/access/purchases',{method:'POST',headers:{authorization:`Bearer ${token}`,'idempotency-key':idempotencyKey},body:JSON.stringify({offerId,settlementProof})})).data;}
+  async verifyExecution(token:string,input:{txHash:string;depositAddress:string;amountIn:string}){return (await this.request<ApiEnvelope<{proof:string}>>('/v1/auth/transactions/execution',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
   async createFork(token:string,input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string}){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>('/v1/forks',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async authChallenge() {
@@ -108,7 +114,7 @@ export class LiveApi {
   async strategy(id:string,token?:string){return (await this.request<ApiEnvelope<LiveStrategyDetail>>(`/v1/strategies/${encodeURIComponent(id)}`,token?{headers:{authorization:`Bearer ${token}`}}:{})).data;}
   async myStrategies(token:string){return (await this.request<ApiEnvelope<LiveStrategy[]>>('/v1/my/strategies',{headers:{authorization:`Bearer ${token}`}})).data;}
   async updateStrategy(token:string,id:string,input:Partial<CreateLiveStrategy>){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>(`/v1/strategies/${encodeURIComponent(id)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
-  async recordExecution(token:string,input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn?:string;amountOut?:string}){return (await this.request<ApiEnvelope<LiveExecution>>('/v1/executions/receipts',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async recordExecution(token:string,input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn:string;amountOut?:string;verificationProof:string}){return (await this.request<ApiEnvelope<LiveExecution>>('/v1/executions/receipts',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const controller = new AbortController();

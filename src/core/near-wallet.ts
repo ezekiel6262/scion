@@ -24,3 +24,12 @@ export async function connectNear(api:LiveApi):Promise<LiveSession>{return conne
 export async function restoreNearWallet(){return connectedWalletAdapter.restore();}
 export async function disconnectNear(){return connectedWalletAdapter.disconnect();}
 export async function nearWallet(){activeWallet??=(await connector.getConnectedWallet()).wallet;return activeWallet;}
+export async function sendUsdcPayment(accountId:string,contractId:string,transfers:{receiverId:string;amountMinor:number;kind:string}[]){
+  if(!transfers.length||transfers.some(value=>!Number.isSafeInteger(value.amountMinor)||value.amountMinor<1))throw new Error('Invalid USDC payment split.');
+  const wallet=await nearWallet(),actions:Array<{type:'FunctionCall';params:{methodName:string;args:Record<string,unknown>;gas:string;deposit:string}}>=[];
+  const bounds=await viewContract(contractId,'storage_balance_bounds',{}),minimum=String(bounds?.min??'1250000000000000000000');
+  for(const receiver of [...new Set(transfers.map(value=>value.receiverId))]){const registered=await viewContract(contractId,'storage_balance_of',{account_id:receiver});if(!registered)actions.push({type:'FunctionCall',params:{methodName:'storage_deposit',args:{account_id:receiver,registration_only:true},gas:'30000000000000',deposit:minimum}});}
+  actions.push(...transfers.map(value=>({type:'FunctionCall' as const,params:{methodName:'ft_transfer',args:{receiver_id:value.receiverId,amount:String(value.amountMinor),memo:`Scion ${value.kind.replaceAll('_',' ')}`},gas:'30000000000000',deposit:'1'}})));
+  const outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:accountId,receiverId:contractId,actions});return outcome.transaction.hash;
+}
+async function viewContract(contractId:string,methodName:string,args:Record<string,unknown>){const response=await fetch('https://rpc.mainnet.fastnear.com',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:'scion-storage',method:'query',params:{request_type:'call_function',finality:'final',account_id:contractId,method_name:methodName,args_base64:btoa(JSON.stringify(args))}})}),body=await response.json() as any;if(!response.ok||body.error)throw new Error('Could not verify USDC account registration.');return JSON.parse(new TextDecoder().decode(Uint8Array.from(body.result.result)));}

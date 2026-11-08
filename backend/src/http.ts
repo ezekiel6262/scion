@@ -22,6 +22,8 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     let security=path.match(/^\/v1\/security\/sessions\/(.+)\/revoke$/);if(request.method==='POST'&&security)return json({data:await service.revokeSession(requireActor(actor),decodeURIComponent(security[1]))},200,requestId);
     security=path.match(/^\/v1\/moderation\/blocks\/(.+)$/);if(request.method==='POST'&&security)return json({data:await service.toggleBlock(requireActor(actor),decodeURIComponent(security[1]))},200,requestId);
     if(request.method==='POST'&&path==='/v1/moderation/reports')return json({data:await service.report(requireActor(actor),await request.json())},201,requestId);
+    if(request.method==='GET'&&path==='/v1/admin/reports')return json({data:await service.moderationQueue(requireActor(actor))},200,requestId);
+    const moderation=path.match(/^\/v1\/admin\/reports\/(.+)$/);if(request.method==='POST'&&moderation)return json({data:await service.resolveReport(requireActor(actor),decodeURIComponent(moderation[1]),await request.json())},200,requestId);
     if(request.method==='GET'&&path==='/v1/security/audit')return json({data:await service.auditLog(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/beta/invites')return json({data:await service.inviteStatus(requireActor(actor))},200,requestId);
     if(request.method==='POST'&&path==='/v1/beta/invites')return json({data:await service.createInvite(requireActor(actor))},201,requestId);
@@ -36,6 +38,7 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     if(request.method==='POST'&&path==='/v1/capabilities')return json({data:await service.issueCapability(requireActor(actor),await request.json())},201,requestId);
     m=path.match(/^\/v1\/capabilities\/([^/]+)\/revoke$/);if(request.method==='POST'&&m)return json({data:await service.revoke(requireActor(actor),m[1])},200,requestId);
     if(request.method==='POST'&&path==='/v1/access/offers')return json({data:await service.createOffer(requireActor(actor),await request.json())},201,requestId);
+    if(request.method==='POST'&&path==='/v1/access/checkout-plan')return json({data:await service.checkoutPlan(requireActor(actor),await request.json())},200,requestId);
     if(request.method==='POST'&&path==='/v1/access/purchases')return json({data:await service.purchaseAccess(requireActor(actor),await request.json(),request.headers.get('idempotency-key')??undefined)},201,requestId);
     if(request.method==='GET'&&path==='/v1/earnings')return json({data:await service.earnings(requireActor(actor))},200,requestId);
     if(request.method==='POST'&&path==='/v1/forks')return json({data:await service.createFork(requireActor(actor),await request.json())},201,requestId);

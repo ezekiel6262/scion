@@ -92,7 +92,13 @@ Every settled stance is scored into a public record on each profile, for example
 
 The **Security log** page shows the security boundary at work: issued capabilities, every release and denial with its reason, and the ciphertext anyone can see.
 
-## What is real and what is simulated
+## Live AWS product path
+
+The `/api/v1` product path uses NEP-413 wallet authentication, NEAR mainnet balance proofs, live 1Click quotes, wallet-approved swaps, profiles, publishing, social activity, invites, and PostgreSQL persistence. Paid access uses a server-signed checkout plan and one NEAR transaction containing the creator payment, upstream royalty, and 10% Scion protocol fee. The internet-facing verifier checks transaction finality, signer, token contract, recipients, and amounts before the private database service can issue a capability. Settlement transaction hashes are unique to prevent replay.
+
+Production keeps the database in isolated subnets, retains seven days of backups, enables deletion protection, and alarms on API/Lambda failures, database CPU, and low storage. Email/social/passkey onboarding remains disabled until provider credentials and a dependency-audited signing SDK are configured. A custom CloudFront domain can be activated with `CustomDomainName` and a us-east-1 ACM certificate ARN.
+
+## What is real and what is simulated in the protocol sandbox
 
 | Real in this build | Simulated in this build |
 |---|---|
@@ -105,7 +111,7 @@ The **Security log** page shows the security boundary at work: issued capabiliti
 | Follower risk-policy clipping and blocking | The intents volume dataset (labeled "Demo dataset") |
 | Royalty routing up the fork lineage | |
 
-`OneClickAdapter` in `src/core/intents.ts` targets the NEAR Intents 1Click API for live quotes. It is written for milestone M2, **has not been verified against the live API**, and is not called by the demo.
+`src/core/intents.ts` remains the deterministic protocol-sandbox adapter. The live product uses `src/ui/LiveSwap.tsx` with the 1Click SDK and independently verifies attached execution receipts through the backend transaction verifier.
 
 ## Project layout
 

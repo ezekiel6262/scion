@@ -13,9 +13,25 @@ Parameters:
   BillingAlertEmail:
     Type: String
     Default: ''
+  NearUsdcContract:
+    Type: String
+    Default: ''
+  ScionTreasuryAccount:
+    Type: String
+    Default: ''
+  ScionAdminAccounts:
+    Type: String
+    Default: ''
+  CustomDomainName:
+    Type: String
+    Default: ''
+  CloudFrontCertificateArn:
+    Type: String
+    Default: ''
 
 Conditions:
   HasBillingAlertEmail: !Not [!Equals [!Ref BillingAlertEmail, '']]
+  HasCustomDomain: !And [!Not [!Equals [!Ref CustomDomainName, '']], !Not [!Equals [!Ref CloudFrontCertificateArn, '']]]
 
 Globals:
   Function:
@@ -34,6 +50,9 @@ Globals:
         DB_PASSWORD: !Sub '{{resolve:secretsmanager:${DatabaseSecret}:SecretString:password}}'
         DB_SSL: 'true'
         SCION_SIGNING_SECRET: !Sub '{{resolve:secretsmanager:${SigningSecret}:SecretString:secret}}'
+        NEAR_USDC_CONTRACT: !Ref NearUsdcContract
+        SCION_TREASURY_ACCOUNT: !Ref ScionTreasuryAccount
+        SCION_ADMIN_ACCOUNTS: !Ref ScionAdminAccounts
 
 Resources:
   Vpc:
@@ -134,8 +153,8 @@ Resources:
       VPCSecurityGroups: [!Ref DatabaseSecurityGroup]
       PubliclyAccessible: false
       MultiAZ: false
-      BackupRetentionPeriod: 1
-      DeletionProtection: false
+      BackupRetentionPeriod: 7
+      DeletionProtection: true
       AutoMinorVersionUpgrade: true
       CopyTagsToSnapshot: true
 
@@ -243,6 +262,18 @@ Resources:
             ApiId: !Ref ScionApi
             Path: /api/v1/auth/avatar
             Method: ANY
+        AuthPaymentVerification:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/auth/transactions/payment
+            Method: ANY
+        AuthExecutionVerification:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/auth/transactions/execution
+            Method: ANY
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -282,6 +313,11 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
+        Aliases: !If [HasCustomDomain, [!Ref CustomDomainName], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasCustomDomain
+          - {AcmCertificateArn: !Ref CloudFrontCertificateArn, SslSupportMethod: sni-only, MinimumProtocolVersion: TLSv1.2_2021}
+          - {CloudFrontDefaultCertificate: true}
         HttpVersion: http2and3
         PriceClass: PriceClass_100
         DefaultRootObject: index.html
@@ -381,6 +417,48 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 3
       ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AuthFunctionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scion wallet and transaction verification errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{Name: FunctionName, Value: !Ref AuthFunction}]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  DatabaseCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scion database CPU is elevated
+      Namespace: AWS/RDS
+      MetricName: CPUUtilization
+      Dimensions: [{Name: DBInstanceIdentifier, Value: !Ref Database}]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 80
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  DatabaseStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scion database free storage is below 3 GB
+      Namespace: AWS/RDS
+      MetricName: FreeStorageSpace
+      Dimensions: [{Name: DBInstanceIdentifier, Value: !Ref Database}]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 3000000000
+      ComparisonOperator: LessThanThreshold
       TreatMissingData: notBreaching
 
 Outputs:
