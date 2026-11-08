@@ -151,7 +151,7 @@ export function App() {
   const myKeys = me ? engine.activeGrants(me).length : 0;
   const livePlays = Object.values(s.plays).filter((p) => p.status === 'sealed').length;
   const groups: [string, [Route['name'], string, string, number?][]][] = [
-    ['Discover', [['home', 'Home', 'home'], ['explore', 'Explore', 'compass'],['agents','Trading agents','bot']]],
+    ['Discover', [['home', 'Home', 'home'], ['plays', 'Plays', 'target', livePlays], ['explore', 'Explore', 'compass'],['agents','Trading agents','bot']]],
     ['You', [['portfolio', 'Portfolio', 'pie'], ['trade', 'Trade', 'swap'],['commerce','Access & earnings','coins']]],
     ['Account', [['account', 'Profile & wallet', 'user'], ['security', 'Security', 'shield']]],
   ];

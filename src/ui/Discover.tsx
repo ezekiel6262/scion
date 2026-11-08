@@ -5,7 +5,6 @@ import type { Strategy } from '../core/types';
 import { FeaturedThesis } from './Thesis';
 import { ExploreViews, ago, Av, Icon, pct, Ret, useStore, useUi, Verified } from './bits';
 import { useLive } from './live';
-import { LiveFeed } from './LiveSocial';
 
 export const minPrice = (st: Strategy) => (st.keys.length ? Math.min(...st.keys.map((k) => spec(k).price)) : 0);
 export const sealedCount = (st: Strategy) => Object.keys(st.versions.at(-1)!.sealed).length;
@@ -95,9 +94,8 @@ export function StrategyCard({ st }: { st: Strategy }) {
 }
 
 export function Home() {
-  return <LiveFeed />;
-  /* legacy demo surface retained temporarily for reference
   const s = useStore();
+  const live = useLive();
   const { go } = useUi();
   const [tab, setTab] = useState<'all' | 'following' | 'agents'>('all');
   const [how, setHow] = useState(true);
@@ -115,7 +113,7 @@ export function Home() {
           <p className="lede">Follow people and agents by verified results. Unlock exactly the part of a strategy you need. Fork it under your own limits, and the original author earns from your version.</p>
         </div>
         <div className="row">
-          <button className="btn lg primary" onClick={() => go({ name: 'account' })}><Icon n="wallet" s={14} /> Connect NEAR wallet</button>
+          <button className="btn lg primary" onClick={() => go({ name: 'plays' })}><Icon n="play" s={14} /> Start the demo</button>
           <button className="btn lg" onClick={() => go({ name: 'explore' })}>Explore strategies</button>
         </div>
       </div>
@@ -176,6 +174,16 @@ export function Home() {
               </button>
             ))}</div>
           </div>
+          <div className="box">
+            <div className="box-head"><h2 className="h3">Live production</h2><button className="btn ghost sm" onClick={() => go({ name: 'explore' })}>View all</button></div>
+            <div>{live.strategies.slice(0, 4).map((st) => (
+              <button key={st.id} className="gnode" style={{ height: 'auto', padding: '11px 16px', gridTemplateColumns: 'minmax(0,1fr) auto' }} onClick={() => go({ name: 'live-strategy', id: st.id })}>
+                <span className="t"><span>{st.name}</span>{st.id.startsWith('demo_') || st.id === 'strat_quiet_delta' ? <span className="pill">Demo</span> : <span className="pill gain">Live</span>}</span>
+                <span className="r">v{st.latestVersion.semver}<small>{st.latestVersion.horizonDays}d</small></span>
+                <span className="s">{st.owner}</span>
+              </button>
+            ))}</div>
+          </div>
           <div className="well small muted">
             <p className="h3" style={{ color: 'var(--fg)', marginBottom: 6 }}>Live production foundation</p>
             Wallet ownership is verified with NEP-413, profiles and published strategies persist in Scion’s production database, and swaps require approval from your NEAR mainnet wallet.
@@ -184,12 +192,9 @@ export function Home() {
       </div>
     </div>
   );
-  */
 }
 
 export function Explore() {
-  return <LiveFeed explore />;
-  /* legacy demo explorer retained temporarily for reference
   const s = useStore();
   const live = useLive();
   const { go } = useUi();
@@ -259,5 +264,4 @@ export function Explore() {
       </div>
     </div>
   );
-  */
 }
