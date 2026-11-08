@@ -122,6 +122,12 @@ tests/protocol.test.ts    protocol and security-boundary checks
 docs/JUDGING.md           claim-to-evidence index
 ```
 
+## Build provenance and dependencies
+
+Scion's first repository commit is dated 6 November 2026, inside the official eligibility window that began with the 19 October announcement. There is no pre-hackathon product baseline or older branch being submitted as new work. The supplied homepage design and expanded product frontend were integrated during the same window and are present in this repository's history.
+
+The application uses React, React DOM, Vite, TypeScript, PostgreSQL through `pg`, `@fastnear/intents` for NEAR Intents integration, `@hot-labs/near-connect` for wallet connection, WebCrypto-compatible browser primitives, and AWS SAM infrastructure. Esbuild and `vite-plugin-singlefile` support testing and packaging. Exact versions and transitive packages are locked in `package-lock.json` and `backend/package-lock.json`; no generated dependency folders are committed.
+
 ## Security
 
 Scion is non-custodial and never receives a seed phrase or unrestricted private key. Capabilities are scoped, expiring, revocable, and holder-bound. Agent actions are constrained by deterministic owner policy and wallet confirmation. Demo records cannot approve proposals, run models, or execute trades. Report vulnerabilities through [SECURITY.md](SECURITY.md).
