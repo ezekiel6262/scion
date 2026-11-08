@@ -9,7 +9,7 @@ let appPromise: ReturnType<typeof initialize> | undefined;
 async function initialize() {
   const secret = process.env.SCION_SIGNING_SECRET;
   if (!secret) throw new Error('SCION_SIGNING_SECRET is required');
-  const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret);
+  const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret,undefined,undefined,true,false);
   await service.seed();
   return createHandler(service, new WalletAuthService(await createAuthStore(), secret));
 }

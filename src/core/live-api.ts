@@ -42,6 +42,8 @@ export type LiveNotification={id:string;actor:string;kind:string;strategyId?:str
 export type LivePublicProfile={profile:LiveProfile;strategies:LiveStrategy[];followers:number;following:number;viewerFollowing:boolean};
 export type LiveDeviceSession={id:string;userAgent:string;createdAt:string;lastSeenAt:string;revoked:boolean;current:boolean};
 export type LiveAuditEvent={id:string;event:string;details:Record<string,unknown>;createdAt:string};
+export type LiveCommerce={paymentsEnabled:boolean;protocolFeeBps:number;earnings:{account:string;currency:'USDC';totalMinor:number;entries:{id:string;kind:string;amountMinor:number;createdAt:string}[]};offers:{id:string;versionId:string;priceMinor:number;status:string;createdAt:string}[];keys:{id:string;versionId:string;scopes:string[];expiresAt:string;status:string;priceMinor:number}[];purchases:{id:string;offerId:string;amountMinor:number;status:string;createdAt:string}[]};
+export type LiveInviteStatus={required:boolean;admitted:boolean;remaining:number;invites:{id:string;usedBy?:string;createdAt:string}[]};
 
 type ApiEnvelope<T> = { data: T };
 type ApiFailure = { error?: { code?: string; message?: string }; requestId?: string };
@@ -74,6 +76,9 @@ export class LiveApi {
   async audit(token:string){return (await this.request<ApiEnvelope<LiveAuditEvent[]>>('/v1/security/audit',{headers:{authorization:`Bearer ${token}`}})).data;}
   async block(token:string,account:string){return (await this.request<ApiEnvelope<{blocked:boolean}>>(`/v1/moderation/blocks/${encodeURIComponent(account)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'})).data;}
   async report(token:string,input:{targetType:'profile'|'strategy'|'comment';targetId:string;reason:string}){return (await this.request<ApiEnvelope<{id:string;status:string}>>('/v1/moderation/reports',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async commerce(token:string){return (await this.request<ApiEnvelope<LiveCommerce>>('/v1/account/commerce',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async invites(token:string){return (await this.request<ApiEnvelope<LiveInviteStatus>>('/v1/beta/invites',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async createInvite(token:string){return (await this.request<ApiEnvelope<{code:string}>>('/v1/beta/invites',{method:'POST',headers:{authorization:`Bearer ${token}`},body:'{}'})).data;}
   async createFork(token:string,input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string}){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>('/v1/forks',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async authChallenge() {
@@ -91,7 +96,7 @@ export class LiveApi {
   async me(token:string){return (await this.request<ApiEnvelope<{accountId:string;profile?:LiveProfile}>>('/v1/me',{headers:{authorization:`Bearer ${token}`}})).data;}
   async balances(token:string){return (await this.request<ApiEnvelope<LiveBalances>>('/v1/auth/balances',{headers:{authorization:`Bearer ${token}`}})).data;}
   async uploadAvatar(token:string,input:{contentType:string;data:string}){return (await this.request<ApiEnvelope<{avatarUrl:string}>>('/v1/auth/avatar',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
-  async saveProfile(token:string,input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string}){return (await this.request<ApiEnvelope<LiveProfile>>('/v1/profile',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async saveProfile(token:string,input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string;inviteCode?:string}){return (await this.request<ApiEnvelope<LiveProfile>>('/v1/profile',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async createStrategy(token: string, strategy: CreateLiveStrategy) {
     return (await this.request<ApiEnvelope<{ strategy: LiveStrategy; version: LiveStrategy['latestVersion'] }>>('/v1/strategies', {

@@ -18,9 +18,9 @@ export type PolicyDecision = { allowed: boolean; requiresConfirmation: boolean; 
 export type ExecutionReceipt = { id: string; executor: string; versionId: string; intentHash: string; policyHash: string; mode: 'simulated' | 'live'; status: 'simulated-settled' | 'submitted' | 'settled'; createdAt: string };
 export type AccessOffer = { id: string; issuer: string; versionId: string; scopes: Scope[]; expiresInSeconds: number; priceMinor: number; currency: 'USDC'; status: 'active' | 'revoked'; createdAt: string };
 export type AccessPurchase = { id: string; idempotencyKey: string; buyer: string; offerId: string; versionId: string; issuer: string; amountMinor: number; currency: 'USDC'; status: 'settled'; settlementRef: string; capabilityId: string; createdAt: string };
-export type LedgerEntry = { id: string; purchaseId: string; account: string; kind: 'creator_revenue' | 'upstream_royalty'; amountMinor: number; currency: 'USDC'; createdAt: string };
+export type LedgerEntry = { id: string; purchaseId: string; account: string; kind: 'creator_revenue' | 'upstream_royalty'|'protocol_fee'; amountMinor: number; currency: 'USDC'; createdAt: string };
 export type Profile = { accountId: string; displayName: string; handle: string; bio: string; avatarUrl?: string; createdAt: string; updatedAt: string };
-export type ProductObject = { id:string; objectType:'follow'|'like'|'comment'|'notification'|'session'|'block'|'report'|'audit'; ownerAccount:string; strategyId?:string; visibility:'public'|'private'; payload:Record<string,unknown>; createdAt:string; updatedAt:string };
+export type ProductObject = { id:string; objectType:'follow'|'like'|'comment'|'notification'|'session'|'block'|'report'|'audit'|'invite'; ownerAccount:string; strategyId?:string; visibility:'public'|'private'; payload:Record<string,unknown>; createdAt:string; updatedAt:string };
 
 export class DomainError extends Error {
   code: string;

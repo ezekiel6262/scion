@@ -11,6 +11,8 @@ test('device sessions revoke fail closed',async()=>{const repo=new MemoryReposit
 
 test('blocking hides creators and reports create private audit events',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret');await service.seed();await service.saveProfile('viewer.near',{displayName:'Viewer',handle:'viewer',bio:''});assert.equal((await service.feed('viewer.near')).some(item=>item.strategy.owner==='alice.near'),true);await service.toggleBlock('viewer.near','alice.near');assert.equal((await service.feed('viewer.near')).some(item=>item.strategy.owner==='alice.near'),false);await service.report('viewer.near',{targetType:'profile',targetId:'alice.near',reason:'Misleading performance claims'});assert.equal((await service.auditLog('viewer.near')).some(event=>event.event==='report.created'),true);});
 
+test('beta invites are single-use and production checkout fails closed',async()=>{const repo=new MemoryRepository(),service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret',undefined,undefined,true,false);await service.seed();const {code}=await service.createInvite('alice.near');await service.saveProfile('new.near',{displayName:'New',handle:'new_user',bio:'',inviteCode:code});await assert.rejects(()=>service.saveProfile('other.near',{displayName:'Other',handle:'other_user',bio:'',inviteCode:code}),/already used|invalid/i);await assert.rejects(()=>service.purchaseAccess('new.near',{offerId:'missing'},'purchase-key'),/disabled/i);});
+
 test('Alice grants access, Bob forks and executes, then access is revoked', async () => {
   const repo = new MemoryRepository();
   const service = new ScionService(repo, new SimulatedNearIntentsAdapter(), 'test-secret', () => new Date('2026-11-06T12:00:00Z'));
@@ -83,7 +85,7 @@ test('paid access is idempotent and splits fork royalties', async () => {
   const replay:any=await service.purchaseAccess('carol.near',{offerId:offer.id},'purchase-001');
   assert.equal(replay.purchase.id,first.purchase.id); assert.equal(replay.token,first.token); assert.equal(repo.purchases.size,1);
   const bob=await service.earnings('bob.near'),alice=await service.earnings('alice.near');
-  assert.equal(bob.totalMinor,95000); assert.equal(alice.totalMinor,5000);
+  assert.equal(bob.totalMinor,85000); assert.equal(alice.totalMinor,5000);assert.equal((await service.earnings('scion.protocol')).totalMinor,10000);
   assert.equal(bob.entries[0].kind,'creator_revenue'); assert.equal(alice.entries[0].kind,'upstream_royalty');
   const scoped:any=await service.readVersion('carol.near',fork.strategy.latestVersionId,first.token);
   assert.equal(scoped.thesis.summary.length>0,true);

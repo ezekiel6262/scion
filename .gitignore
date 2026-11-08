@@ -4,3 +4,5 @@ dist-single
 .test
 backend/.build
 infra/.aws-sam
+.sam-tmp
+migration-output.json

@@ -33,6 +33,9 @@ export class PostgresRepository implements Repository {
   async listExecutions(versionId:string){const r=await this.db.query('SELECT * FROM scion_private.executions WHERE version_id=$1 ORDER BY created_at DESC',[versionId]);return r.rows.map(toExecution);}
   async putOffer(v:AccessOffer){await this.db.query(`INSERT INTO scion_private.access_offers (id,issuer_account,version_id,scopes,expires_in_seconds,price_minor,currency,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status`,[v.id,v.issuer,v.versionId,v.scopes,v.expiresInSeconds,v.priceMinor,v.currency,v.status,v.createdAt]);}
   async getOffer(id:string){const r=await this.db.query('SELECT * FROM scion_private.access_offers WHERE id=$1',[id]);return r.rows[0]&&toOffer(r.rows[0]);}
+  async listOffers(account:string){const r=await this.db.query('SELECT * FROM scion_private.access_offers WHERE issuer_account=$1 ORDER BY created_at DESC',[account]);return r.rows.map(toOffer);}
+  async listCapabilities(account:string){const r=await this.db.query('SELECT * FROM scion_private.capabilities WHERE subject_account=$1 ORDER BY created_at DESC',[account]);return r.rows.map(toCapability);}
+  async listPurchases(account:string){const r=await this.db.query('SELECT * FROM scion_private.access_purchases WHERE buyer_account=$1 ORDER BY created_at DESC',[account]);return r.rows.map(toPurchase);}
   async getPurchaseByIdempotency(buyer:string,key:string){const r=await this.db.query('SELECT * FROM scion_private.access_purchases WHERE buyer_account=$1 AND idempotency_key=$2',[buyer,key]);return r.rows[0]&&toPurchase(r.rows[0]);}
   async settleAccessPurchase(p:AccessPurchase,c:Capability,entries:LedgerEntry[]){
     if(!this.db.connect)throw new Error('Database adapter does not support transactions'); const client=await this.db.connect();

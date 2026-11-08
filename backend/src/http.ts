@@ -23,6 +23,9 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     security=path.match(/^\/v1\/moderation\/blocks\/(.+)$/);if(request.method==='POST'&&security)return json({data:await service.toggleBlock(requireActor(actor),decodeURIComponent(security[1]))},200,requestId);
     if(request.method==='POST'&&path==='/v1/moderation/reports')return json({data:await service.report(requireActor(actor),await request.json())},201,requestId);
     if(request.method==='GET'&&path==='/v1/security/audit')return json({data:await service.auditLog(requireActor(actor))},200,requestId);
+    if(request.method==='GET'&&path==='/v1/beta/invites')return json({data:await service.inviteStatus(requireActor(actor))},200,requestId);
+    if(request.method==='POST'&&path==='/v1/beta/invites')return json({data:await service.createInvite(requireActor(actor))},201,requestId);
+    if(request.method==='GET'&&path==='/v1/account/commerce')return json({data:await service.commerce(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/my/strategies')return json({data:await service.myStrategies(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/me')return json({data:{accountId:requireActor(actor),profile:await service.profile(requireActor(actor))}},200,requestId);
     if(request.method==='POST'&&path==='/v1/profile')return json({data:await service.saveProfile(requireActor(actor),await request.json())},200,requestId);
