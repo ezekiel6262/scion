@@ -7,7 +7,7 @@ export const useStore = (): State => useSyncExternalStore(engine.subscribe, engi
 
 export type Route =
   | { name: 'home' } | { name: 'explore' } | { name: 'lineage' } | { name: 'studio' } | { name: 'keys' } | { name: 'earnings' } | { name: 'security' } | {name:'account'}
-  | { name: 'plays' } | { name: 'trade' } | { name: 'duels' } | { name: 'portfolio' } | { name: 'collection' } | { name: 'studio-portfolio' } | {name:'commerce'}
+  | { name: 'plays' } | { name: 'trade' } | { name: 'duels' } | { name: 'portfolio' } | { name: 'collection' } | { name: 'studio-portfolio' } | {name:'commerce'} | {name:'agents'}
   | { name: 'strategy'; id: string; tab?: string } | { name: 'fork'; id: string } | { name: 'profile'; id: string }
   | { name: 'live-strategy'; id: string } | {name:'live-profile';id:string};
 
@@ -74,6 +74,7 @@ const P: Record<string, string> = {
   rail: 'M4 6h16M4 12h16M4 18h16',
   swap: 'M5 8h13l-3.5-3.5M19 16H6l3.5 3.5',
   wallet: 'M4 7h15a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4zM4 7V6a2 2 0 0 1 2-2h11M16 13h1',
+  bot: 'M8 8h8a4 4 0 0 1 4 4v6H4v-6a4 4 0 0 1 4-4zM12 8V4M9 13h.01M15 13h.01M8 18v2M16 18v2',
 };
 export function Icon({ n, s = 16, w = 1.8 }: { n: string; s?: number; w?: number }) {
   return (

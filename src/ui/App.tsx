@@ -19,6 +19,7 @@ import { LiveStrategyPage } from './LiveProduct';
 import { LivePublicProfilePage } from './LiveSocial';
 import { LiveSecurity } from './LiveSecurity';
 import { LiveCommercePage } from './LiveCommerce';
+import { LiveAgentsPage } from './LiveAgents';
 
 const aliceStrat = (s: State) => Object.values(s.strategies).find((x) => x.owner === 'alice' && !x.seeded && !x.parent);
 
@@ -150,7 +151,7 @@ export function App() {
   const myKeys = me ? engine.activeGrants(me).length : 0;
   const livePlays = Object.values(s.plays).filter((p) => p.status === 'sealed').length;
   const groups: [string, [Route['name'], string, string, number?][]][] = [
-    ['Discover', [['home', 'Home', 'home'], ['explore', 'Explore', 'compass']]],
+    ['Discover', [['home', 'Home', 'home'], ['explore', 'Explore', 'compass'],['agents','Trading agents','bot']]],
     ['You', [['portfolio', 'Portfolio', 'pie'], ['trade', 'Trade', 'swap'],['commerce','Access & earnings','coins']]],
     ['Account', [['account', 'Profile & wallet', 'user'], ['security', 'Security', 'shield']]],
   ];
@@ -224,6 +225,7 @@ export function App() {
             {route.name === 'security' && <LiveSecurity />}
             {route.name === 'account' && <AccountPage />}
             {route.name === 'commerce' && <LiveCommercePage />}
+            {route.name === 'agents' && <LiveAgentsPage />}
             {route.name === 'strategy' && <StrategyPage id={route.id} tab={route.tab} />}
             {route.name === 'live-strategy' && <LiveStrategyPage id={route.id} />}
             {route.name === 'live-profile' && <LivePublicProfilePage account={route.id} />}

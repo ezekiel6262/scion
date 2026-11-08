@@ -98,6 +98,10 @@ The `/api/v1` product path uses NEP-413 wallet authentication, NEAR mainnet bala
 
 Production keeps the database in isolated subnets, retains seven days of backups, enables deletion protection, and alarms on API/Lambda failures, database CPU, and low storage. Email/social/passkey onboarding remains disabled until provider credentials and a dependency-audited signing SDK are configured. A custom CloudFront domain can be activated with `CustomDomainName` and a us-east-1 ACM certificate ARN.
 
+### User-owned trading agents
+
+Authenticated users can create public or private agent identities in research, proposal, or bounded-execution mode. Every agent is owned by a NEAR account and carries an attested policy covering allowed assets, per-trade and daily limits, allocation, slippage, and leverage. Research agents cannot propose trades. Proposal agents require an explicit owner decision and wallet confirmation. Bounded agents start paused and cannot activate until dedicated execution authority is verified. Owners can pause or permanently revoke agents; Scion does not own their identity, funds, or strategy.
+
 ## What is real and what is simulated in the protocol sandbox
 
 | Real in this build | Simulated in this build |

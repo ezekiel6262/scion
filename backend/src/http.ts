@@ -28,6 +28,12 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     if(request.method==='GET'&&path==='/v1/beta/invites')return json({data:await service.inviteStatus(requireActor(actor))},200,requestId);
     if(request.method==='POST'&&path==='/v1/beta/invites')return json({data:await service.createInvite(requireActor(actor))},201,requestId);
     if(request.method==='GET'&&path==='/v1/account/commerce')return json({data:await service.commerce(requireActor(actor))},200,requestId);
+    if(request.method==='GET'&&path==='/v1/agents')return json({data:await service.agents(actor)},200,requestId);
+    if(request.method==='POST'&&path==='/v1/agents')return json({data:await service.createAgent(requireActor(actor),await request.json())},201,requestId);
+    let agentRoute=path.match(/^\/v1\/agents\/([^/]+)$/);if(request.method==='GET'&&agentRoute)return json({data:await service.agentDetail(agentRoute[1],actor)},200,requestId);
+    agentRoute=path.match(/^\/v1\/agents\/([^/]+)\/status$/);if(request.method==='POST'&&agentRoute){const b=await request.json() as any;return json({data:await service.setAgentStatus(requireActor(actor),agentRoute[1],b.status)},200,requestId);}
+    agentRoute=path.match(/^\/v1\/agents\/([^/]+)\/proposals$/);if(request.method==='POST'&&agentRoute)return json({data:await service.createAgentProposal(requireActor(actor),agentRoute[1],await request.json())},201,requestId);
+    agentRoute=path.match(/^\/v1\/agent-proposals\/([^/]+)\/decision$/);if(request.method==='POST'&&agentRoute){const b=await request.json() as any;return json({data:await service.decideAgentProposal(requireActor(actor),agentRoute[1],b.decision)},200,requestId);}
     if(request.method==='GET'&&path==='/v1/my/strategies')return json({data:await service.myStrategies(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/me')return json({data:{accountId:requireActor(actor),profile:await service.profile(requireActor(actor))}},200,requestId);
     if(request.method==='POST'&&path==='/v1/profile')return json({data:await service.saveProfile(requireActor(actor),await request.json())},200,requestId);
