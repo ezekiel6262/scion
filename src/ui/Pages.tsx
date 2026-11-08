@@ -20,7 +20,7 @@ export function AccountPage(){
 }
 
 const needWallet = (what: string) => (
-  <div className="view narrow empty"><p className="h2">Choose a wallet</p><p>Switch to Alice or Bob in the sidebar to see {what}.</p></div>
+  <div className="view narrow empty"><p className="h2">Connect your NEAR wallet</p><p>Sign in with your live account to see {what}.</p></div>
 );
 
 export function Keys() {

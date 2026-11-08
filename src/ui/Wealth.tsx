@@ -8,10 +8,12 @@ import { RealPortfolio } from './LiveProduct';
 export function PortfolioPage() {
   const live = useLive();
   if (live.session) return <RealPortfolio />;
+  return <div className="view narrow empty"><p className="h2">Connect your NEAR wallet</p><p>Sign in with your live account to view balances, holdings, strategies, and portfolio performance.</p><button className="btn primary lg" onClick={() => act(() => live.connect())}><Icon n="wallet" s={16} /> Connect NEAR wallet</button></div>;
+  /* The seeded portfolio engine remains available to the guided demo, but is not a live product fallback.
   const s = useStore();
   const { go, execute } = useUi();
   const me = personaUser(s.persona);
-  if (!me) return <div className="view narrow empty"><p className="h2">Choose a wallet</p><p>Switch to Alice or Bob in the sidebar to track a portfolio.</p></div>;
+  if (!me) return null;
   const p = s.portfolios[me];
   const forks = Object.values(s.strategies).filter((x) => x.owner === me && x.parent);
   const ownStrats = Object.values(s.strategies).filter((x) => x.owner === me && !x.parent);
@@ -112,6 +114,7 @@ export function PortfolioPage() {
       {forkTable}
     </div>
   );
+  */
 }
 
 export function Collection() {

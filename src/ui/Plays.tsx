@@ -146,7 +146,7 @@ export function Plays() {
     <div className="view">
       <div className="pagehead">
         <div><h1 className="title">Plays</h1><p className="muted" style={{ maxWidth: '60ch' }}>Single calls, sealed and timestamped. Pay for early access, or wait for the reveal and check the receipts.</p></div>
-        <button className="btn primary lg" onClick={() => (me ? setCompose(true) : engine.toast('Choose a wallet in the sidebar to post a play.', 'warn'))}><Icon n="plus" s={15} /> New play</button>
+        <button className="btn primary lg" onClick={() => (me ? setCompose(true) : engine.toast('Connect your NEAR wallet to post a play.', 'warn'))}><Icon n="plus" s={15} /> New play</button>
       </div>
       <div className="repo">
         <div>

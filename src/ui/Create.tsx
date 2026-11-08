@@ -70,7 +70,7 @@ export function ForkFlow({ parentId }: { parentId: string }) {
   if (!me || !view?.positions || !canFork) {
     return (
       <div className="view narrow empty">
-        <p className="h2">{me ? 'You need a Fork Key' : 'Choose a wallet to fork'}</p>
+        <p className="h2">{me ? 'You need a Fork Key' : 'Connect your NEAR wallet to fork'}</p>
         <p style={{ margin: '6px 0 16px' }}>Forking “{parent.title}” needs a valid Fork Key from your wallet.</p>
         <button className="btn primary" onClick={() => go({ name: 'strategy', id: parentId, tab: 'access' })}>See keys</button>
       </div>

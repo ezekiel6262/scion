@@ -34,7 +34,7 @@ export function StrategyPage({ id, tab: initial }: { id: string; tab?: string })
   const latest = st.versions.at(-1)!;
   const openPrs = Object.values(s.prs).filter((p) => (p.parentId === id || p.forkId === id) && p.status === 'open').length;
   const openUnlock = (k?: KeyClass) => {
-    if (!me) { engine.toast('Choose a wallet in the sidebar to unlock strategies.', 'warn'); return; }
+    if (!me) { engine.toast('Connect your NEAR wallet to unlock strategies.', 'warn'); return; }
     setUnlock(k ?? (st.keys.includes('fork') ? 'fork' : st.keys[0]));
   };
 
@@ -78,7 +78,7 @@ export function StrategyPage({ id, tab: initial }: { id: string; tab?: string })
             <button className="n" onClick={() => setTab('forks')} aria-label={`${forks} forks`}>{forks}</button>
           </div>
           {isOwner ? <OwnerAction st={st} /> : isPublic
-            ? <button className="btn primary" disabled={!me} title={!me ? 'Choose a wallet to fork' : undefined} onClick={() => go({ name: 'fork', id })}><Icon n="fork" s={14} /> Fork free</button>
+            ? <button className="btn primary" disabled={!me} title={!me ? 'Connect your NEAR wallet to fork' : undefined} onClick={() => go({ name: 'fork', id })}><Icon n="fork" s={14} /> Fork free</button>
             : held.length > 0
             ? <button className="btn" onClick={() => setTab('access')}><Icon n="key" s={14} /> {held.length} key{held.length > 1 ? 's' : ''} held</button>
             : <button className="btn primary" onClick={() => openUnlock()}><Icon n="unlock" s={14} /> Unlock</button>}
@@ -410,7 +410,7 @@ function ActivityTab({ st }: { st: Strategy }) {
             <div key={i} className="row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}><Av u={s.users[c.who]} size="sm" /><div><div className="strong small">{s.users[c.who].name}</div><div>{c.text}</div></div></div>
           ))}
           <div className="row">
-            <input className="input" style={{ flex: 1 }} placeholder={me ? 'Add a comment' : 'Choose a wallet to comment'} disabled={!me} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Comment" />
+            <input className="input" style={{ flex: 1 }} placeholder={me ? 'Add a comment' : 'Connect your wallet to comment'} disabled={!me} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Comment" />
             <button className="btn" disabled={!me || !draft.trim()} onClick={() => { setItems([...items, { who: me!, text: draft.trim() }]); setDraft(''); }}>Comment</button>
           </div>
         </div>

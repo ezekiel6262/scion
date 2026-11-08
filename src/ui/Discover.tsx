@@ -128,7 +128,7 @@ export function Home() {
             ))}
           </div>
           {items.length === 0 ? (
-            <div className="empty"><p className="h2">Nothing here yet</p><p>{me ? 'Follow someone from their profile to fill this feed.' : 'Choose a wallet in the sidebar to see who you follow.'}</p></div>
+            <div className="empty"><p className="h2">Nothing here yet</p><p>{me ? 'Follow someone from their profile to fill this feed.' : 'Connect your NEAR wallet to build a following feed.'}</p></div>
           ) : items.map((st) => {
             const u = s.users[st.owner];
             const parent = st.parent ? s.strategies[st.parent.id] : undefined;
