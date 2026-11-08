@@ -1,11 +1,13 @@
 import { NearConnector, type NearWalletBase } from '@hot-labs/near-connect';
 import type { LiveApi } from './live-api';
 export type LiveSession = { token:string; accountId:string; expiresAt:string };
+export type WalletAuthMode='connected-wallet'|'embedded';
+export type WalletAuthAdapter={mode:WalletAuthMode;label:string;connect(api:LiveApi):Promise<LiveSession>;restore():Promise<unknown>;disconnect():Promise<void>};
 
 const connector = new NearConnector({ network:'mainnet', features:{signMessage:true,mainnet:true}, footerBranding:{heading:'Connect to Scion',link:'https://d30lp8j3k8uetx.cloudfront.net',linkText:'Scion'} });
 let activeWallet:NearWalletBase|undefined;
 
-export async function connectNear(api:LiveApi):Promise<LiveSession>{
+async function connectExistingWallet(api:LiveApi):Promise<LiveSession>{
   const challenge=await api.authChallenge();
   activeWallet=await connector.connect();
   const accounts=await activeWallet.getAccounts({network:'mainnet'}),account=accounts[0];
@@ -14,6 +16,10 @@ export async function connectNear(api:LiveApi):Promise<LiveSession>{
   return api.authVerify({challengeId:challenge.challengeId,accountId:signed.accountId,publicKey:signed.publicKey,signature:signed.signature});
 }
 
-export async function restoreNearWallet(){try{const connected=await connector.getConnectedWallet();activeWallet=connected.wallet;return connected;}catch{return undefined;}}
-export async function disconnectNear(){if(activeWallet)await connector.disconnect(activeWallet);activeWallet=undefined;}
+async function restoreExistingWallet(){try{const connected=await connector.getConnectedWallet();activeWallet=connected.wallet;return connected;}catch{return undefined;}}
+async function disconnectExistingWallet(){if(activeWallet)await connector.disconnect(activeWallet);activeWallet=undefined;}
+export const connectedWalletAdapter:WalletAuthAdapter={mode:'connected-wallet',label:'Connect an existing wallet',connect:connectExistingWallet,restore:restoreExistingWallet,disconnect:disconnectExistingWallet};
+export async function connectNear(api:LiveApi):Promise<LiveSession>{return connectedWalletAdapter.connect(api);}
+export async function restoreNearWallet(){return connectedWalletAdapter.restore();}
+export async function disconnectNear(){return connectedWalletAdapter.disconnect();}
 export async function nearWallet(){activeWallet??=(await connector.getConnectedWallet()).wallet;return activeWallet;}

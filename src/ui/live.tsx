@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LiveApi, type CreateLiveStrategy, type LiveBalances, type LiveComment, type LiveExecution, type LiveFeedItem, type LiveHealth, type LiveNotification, type LiveProfile, type LiveStrategy, type LiveStrategyDetail } from '../core/live-api';
+import { LiveApi, type CreateLiveStrategy, type LiveBalances, type LiveComment, type LiveExecution, type LiveFeedItem, type LiveHealth, type LiveNotification, type LiveProfile, type LivePublicProfile, type LiveStrategy, type LiveStrategyDetail } from '../core/live-api';
 import { connectNear, disconnectNear, restoreNearWallet, type LiveSession } from '../core/near-wallet';
 
 type LiveState = {
@@ -25,6 +25,7 @@ type LiveState = {
   updateStrategy:(id:string,input:Partial<CreateLiveStrategy>)=>Promise<LiveStrategy>;
   recordExecution:(input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn?:string;amountOut?:string})=>Promise<LiveExecution>;
   toggleFollow:(account:string)=>Promise<void>;toggleLike:(strategyId:string)=>Promise<void>;comments:(strategyId:string)=>Promise<LiveComment[]>;addComment:(strategyId:string,body:string)=>Promise<LiveComment>;createFork:(input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string})=>Promise<LiveStrategy>;markNotificationsRead:()=>Promise<void>;
+  loadProfile:(account:string)=>Promise<LivePublicProfile>;
 };
 
 const LiveCtx = createContext<LiveState | null>(null);
@@ -33,7 +34,7 @@ const restoredSession=()=>{try{const value=JSON.parse(localStorage.getItem(SESSI
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => new LiveApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), []);
-  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'|'toggleFollow'|'toggleLike'|'comments'|'addComment'|'createFork'|'markNotificationsRead'>>({ status: 'connecting', strategies: [], feed:[],notifications:[],session: restoredSession(), publishing: false, balancesLoading:false });
+  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'|'toggleFollow'|'toggleLike'|'comments'|'addComment'|'createFork'|'markNotificationsRead'|'loadProfile'>>({ status: 'connecting', strategies: [], feed:[],notifications:[],session: restoredSession(), publishing: false, balancesLoading:false });
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, status: current.refreshedAt ? current.status : 'connecting' }));
     try {
@@ -80,7 +81,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const addComment=useCallback((strategyId:string,body:string)=>api.addComment(requireSession().token,strategyId,body),[api,state.session]);
   const createFork=useCallback(async(input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string})=>{const result=await api.createFork(requireSession().token,input);await refresh();return {...result.strategy,latestVersion:result.version};},[api,refresh,state.session]);
   const markNotificationsRead=useCallback(async()=>{const session=requireSession();await api.readNotifications(session.token);setState(current=>({...current,notifications:current.notifications.map(n=>({...n,read:true}))}));},[api,state.session]);
-  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile, refreshBalances, loadStrategy, updateStrategy, recordExecution,toggleFollow,toggleLike,comments,addComment,createFork,markNotificationsRead }}>{children}</LiveCtx.Provider>;
+  const loadProfile=useCallback((account:string)=>api.publicProfile(account,state.session?.token),[api,state.session]);
+  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile, refreshBalances, loadStrategy, updateStrategy, recordExecution,toggleFollow,toggleLike,comments,addComment,createFork,markNotificationsRead,loadProfile }}>{children}</LiveCtx.Provider>;
 }
 
 export function useLive() {

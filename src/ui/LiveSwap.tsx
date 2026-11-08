@@ -17,7 +17,7 @@ export function LiveNearSwap() {
   const [status, setStatus] = useState<string>();
   const [error, setError] = useState<string>();
   const owned = live.strategies.filter((strategy) => strategy.owner === live.session?.accountId);
-  const [strategyId, setStrategyId] = useState('');
+  const [strategyId, setStrategyId] = useState(()=>{const selected=localStorage.getItem('scion.execute.strategy')??'';localStorage.removeItem('scion.execute.strategy');return selected;});
   const valid = Number.isFinite(amount) && amount > 0 && amount <= MAX_NEAR;
   const output = useMemo(() => quote?.quote.amountOutFormatted ?? quote?.quote.amountOut, [quote]);
 
