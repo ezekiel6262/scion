@@ -25,6 +25,7 @@ import { DocsPage } from './Docs';
 const aliceStrat = (s: State) => Object.values(s.strategies).find((x) => x.owner === 'alice' && !x.seeded && !x.parent);
 const PUBLIC_VIEWS = new Set<Route['name']>(['home', 'plays', 'explore', 'agents', 'portfolio', 'trade', 'commerce', 'account', 'security', 'docs']);
 const routeFromLocation = (): Route => {
+  if (location.pathname === '/docs') return { name: 'docs' };
   const view = new URLSearchParams(location.search).get('view') as Route['name'] | null;
   return view && PUBLIC_VIEWS.has(view) ? { name: view } as Route : { name: 'home' };
 };
@@ -147,7 +148,7 @@ export function App() {
   const [exec, setExec] = useState<{ sid: string; orders: PlannedOrder[]; slippage: number; manual: boolean } | null>(null);
   const go = useCallback((r: Route) => {
     setRoute(r);
-    const url = r.name === 'home' ? '/' : `/?view=${encodeURIComponent(r.name)}`;
+    const url = r.name === 'home' ? '/app' : `/app?view=${encodeURIComponent(r.name)}`;
     history.pushState({ view: r.name }, '', url);
     window.scrollTo({ top: 0 });
   }, []);

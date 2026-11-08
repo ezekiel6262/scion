@@ -4,7 +4,7 @@ export type LiveSession = { token:string; accountId:string; expiresAt:string };
 export type WalletAuthMode='connected-wallet'|'embedded';
 export type WalletAuthAdapter={mode:WalletAuthMode;label:string;connect(api:LiveApi):Promise<LiveSession>;restore():Promise<unknown>;disconnect():Promise<void>};
 
-const connector = new NearConnector({ network:'mainnet', features:{signMessage:true,mainnet:true}, footerBranding:{heading:'Connect to Scion',link:'https://d30lp8j3k8uetx.cloudfront.net',linkText:'Scion'} });
+const connector = new NearConnector({ network:'mainnet', features:{signMessage:true,mainnet:true}, footerBranding:{heading:'Connect to Scion',link:'https://scionhub.xyz',linkText:'Scion'} });
 let activeWallet:NearWalletBase|undefined;
 
 async function connectExistingWallet(api:LiveApi):Promise<LiveSession>{
@@ -24,6 +24,14 @@ export async function connectNear(api:LiveApi):Promise<LiveSession>{return conne
 export async function restoreNearWallet(){return connectedWalletAdapter.restore();}
 export async function disconnectNear(){return connectedWalletAdapter.disconnect();}
 export async function nearWallet(){activeWallet??=(await connector.getConnectedWallet()).wallet;return activeWallet;}
+export function agentAccountId(handle:string,owner:string){const label=handle.toLowerCase().replaceAll('_','-').replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');if(label.length<2)throw new Error('Use at least two letters or numbers in the agent handle.');return `${label}.${owner}`;}
+export async function createAgentAccount(owner:string,handle:string,fundingNear='0.1'){
+  const wallet=await nearWallet(),accounts=await wallet.getAccounts({network:'mainnet'}),account=accounts.find(value=>value.accountId===owner),accountId=agentAccountId(handle,owner);
+  if(!account?.publicKey)throw new Error('Reconnect the owner wallet so Scion can read its public key.');
+  const amount=BigInt(Math.round(Number(fundingNear)*1_000_000))*1_000_000_000_000_000_000n;
+  const outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:owner,receiverId:accountId,actions:[{type:'CreateAccount'},{type:'Transfer',params:{deposit:String(amount)}},{type:'AddKey',params:{publicKey:account.publicKey,accessKey:{permission:'FullAccess'}}}]});
+  return {accountId,txHash:outcome.transaction.hash};
+}
 export async function sendUsdcPayment(accountId:string,contractId:string,transfers:{receiverId:string;amountMinor:number;kind:string}[]){
   if(!transfers.length||transfers.some(value=>!Number.isSafeInteger(value.amountMinor)||value.amountMinor<1))throw new Error('Invalid USDC payment split.');
   const wallet=await nearWallet(),actions:Array<{type:'FunctionCall';params:{methodName:string;args:Record<string,unknown>;gas:string;deposit:string}}>=[];
