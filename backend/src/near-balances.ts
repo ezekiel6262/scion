@@ -16,14 +16,11 @@ export class NearBalanceService {
     const [account,tokensResponse]=await Promise.all([this.rpc('query',{request_type:'view_account',finality:'final',account_id:accountId}),fetch(`${this.oneClickUrl}/v0/tokens`)]);
     if(!tokensResponse.ok)throw new DomainError('balance_provider_unavailable','Token registry is temporarily unavailable',503);
     const tokens=await tokensResponse.json() as Array<{assetId:string;blockchain:string;symbol:string;decimals:number;price?:number;contractAddress?:string}>;
-    const nearToken=tokens.find((token)=>token.assetId==='nep141:wrap.near');
-    const usdc=tokens.find((token)=>token.blockchain.toLowerCase()==='near'&&token.symbol.toUpperCase()==='USDC');
+    const nearTokens=tokens.filter((token)=>token.blockchain.toLowerCase()==='near'&&token.assetId.startsWith('nep141:'));
+    const nearToken=nearTokens.find((token)=>token.assetId==='nep141:wrap.near');
     const nativeRaw=String(account.amount??'0');
     const holdings:NearHolding[]=[{asset:'NEAR',chain:'near',units:formatUnits(nativeRaw,24),raw:nativeRaw,decimals:24,usdPrice:nearToken?.price,observedAt}];
-    for(const token of [nearToken,usdc]){
-      if(!token)continue;const contractId=token.contractAddress??token.assetId.replace(/^nep141:/,'');
-      try{const raw=await this.ftBalance(contractId,accountId);holdings.push({asset:token.symbol.toUpperCase()==='WNEAR'?'wNEAR':token.symbol.toUpperCase(),chain:'near',contractId,units:formatUnits(raw,token.decimals),raw,decimals:token.decimals,usdPrice:token.price,observedAt});}catch{holdings.push({asset:token.symbol.toUpperCase()==='WNEAR'?'wNEAR':token.symbol.toUpperCase(),chain:'near',contractId,units:'0',raw:'0',decimals:token.decimals,usdPrice:token.price,observedAt});}
-    }
+    holdings.push(...await Promise.all(nearTokens.map(async(token)=>{const contractId=token.contractAddress??token.assetId.replace(/^nep141:/,''),asset=token.symbol.toUpperCase()==='WNEAR'?'wNEAR':token.symbol.toUpperCase();try{const raw=await this.ftBalance(contractId,accountId);return {asset,chain:'near' as const,contractId,units:formatUnits(raw,token.decimals),raw,decimals:token.decimals,usdPrice:token.price,observedAt};}catch{return {asset,chain:'near' as const,contractId,units:'0',raw:'0',decimals:token.decimals,usdPrice:token.price,observedAt};}})));
     const proofPayload=Buffer.from(JSON.stringify({sub:accountId,observedAt,exp:new Date(this.now().getTime()+300000).toISOString(),holdings:holdings.map(({asset,raw,contractId})=>({asset,raw,contractId}))})).toString('base64url');
     return {accountId,network:'mainnet' as const,observedAt,holdings,proof:signToken(proofPayload,this.secret)};
   }

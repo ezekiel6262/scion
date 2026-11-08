@@ -1,105 +1,56 @@
-import { createOneClickClient, type OneClickQuoteResponse } from '@fastnear/intents';
-import { useMemo, useState } from 'react';
+import { createOneClickClient, type OneClickQuoteResponse, type OneClickToken } from '@fastnear/intents';
+import { useEffect, useMemo, useState } from 'react';
+import type { LiveSwap } from '../core/live-api';
 import { nearWallet } from '../core/near-wallet';
+import { Icon, usd } from './bits';
 import { useLive } from './live';
 
-const MAX_NEAR = 0.1;
-const YOCTO = 10n ** 24n;
-const client = createOneClickClient();
+const client=createOneClickClient();
+const memeSymbols=new Set(['SHIB','PEPE','BONK','DOGE','WIF','FLOKI','BRETT','TURBO','MOG','MEW','NEIRO','AIDOGE','BLACKDRAGON','SHITZU','PURGE','NEARKAT','ABG','GNEAR','NOEAR']);
+const stableSymbols=new Set(['USDC','USDT','DAI','USN','FRAX','PYUSD','USD1']);
+const shorten=(value:string)=>value.length>24?`${value.slice(0,12)}…${value.slice(-8)}`:value;
+const displaySymbol=(token:OneClickToken)=>token.assetId==='nep141:wrap.near'?'NEAR':token.symbol.toUpperCase();
+const contract=(token:OneClickToken)=>token.contractAddress??token.assetId.replace(/^nep141:/,'');
+const marketPrice=(price?:number)=>!price?'—':`$${price.toLocaleString(undefined,{minimumFractionDigits:price<1?2:0,maximumFractionDigits:price<0.000001?12:price<0.01?8:price<1?6:2})}`;
+const toBaseUnits=(value:string,decimals:number)=>{if(!/^\d+(\.\d+)?$/.test(value.trim()))throw new Error('Enter a valid amount.');const [whole,fraction='']=value.trim().split('.');if(fraction.length>decimals)throw new Error(`This token supports up to ${decimals} decimal places.`);return `${whole}${fraction.padEnd(decimals,'0')}`.replace(/^0+(?=\d)/,'')||'0';};
+const tokenMatches=(token:OneClickToken,query:string)=>{const q=query.trim().toLowerCase();return !q||[token.symbol,token.coingeckoId,token.contractAddress,token.assetId].some(value=>value?.toLowerCase().includes(q));};
 
-const toYocto = (amount: number) => BigInt(Math.floor(amount * 1_000_000)) * (YOCTO / 1_000_000n);
+function TokenSelect({label,value,tokens,onChange}:{label:string;value?:OneClickToken;tokens:OneClickToken[];onChange:(token:OneClickToken)=>void}){
+  return <label className="field"><span>{label}</span><select className="input" value={value?.assetId??''} onChange={event=>{const token=tokens.find(item=>item.assetId===event.target.value);if(token)onChange(token);}}>{tokens.map(token=><option value={token.assetId} key={token.assetId}>{displaySymbol(token)} · {shorten(contract(token))}</option>)}</select></label>;
+}
 
-export function LiveNearSwap() {
-  const live = useLive();
-  const [amount, setAmount] = useState(0.01);
-  const [quote, setQuote] = useState<OneClickQuoteResponse>();
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<string>();
-  const [error, setError] = useState<string>();
-  const owned = live.strategies.filter((strategy) => strategy.owner === live.session?.accountId);
-  const [strategyId, setStrategyId] = useState(()=>{const selected=localStorage.getItem('scion.execute.strategy')??'';localStorage.removeItem('scion.execute.strategy');return selected;});
-  const valid = Number.isFinite(amount) && amount > 0 && amount <= MAX_NEAR;
-  const output = useMemo(() => quote?.quote.amountOutFormatted ?? quote?.quote.amountOut, [quote]);
+export function LiveNearSwap(){
+  const live=useLive(),[tokens,setTokens]=useState<OneClickToken[]>([]),[origin,setOrigin]=useState<OneClickToken>(),[destination,setDestination]=useState<OneClickToken>(),[amount,setAmount]=useState('0.01'),[slippage,setSlippage]=useState(100),[quote,setQuote]=useState<OneClickQuoteResponse>(),[busy,setBusy]=useState(false),[status,setStatus]=useState<string>(),[error,setError]=useState<string>(),[search,setSearch]=useState(''),[marketFilter,setMarketFilter]=useState<'all'|'stable'|'meme'>('all'),[history,setHistory]=useState<LiveSwap[]>([]),[strategyId,setStrategyId]=useState(()=>{const selected=localStorage.getItem('scion.execute.strategy')??'';localStorage.removeItem('scion.execute.strategy');return selected;});
+  const owned=live.strategies.filter(strategy=>strategy.owner===live.session?.accountId);
+  useEffect(()=>{let active=true;client.tokens().then(items=>{if(!active)return;const near=items.filter(token=>token.blockchain.toLowerCase()==='near'&&token.assetId.startsWith('nep141:')).sort((a,b)=>(b.price??0)-(a.price??0)||displaySymbol(a).localeCompare(displaySymbol(b)));setTokens(near);setOrigin(near.find(token=>token.assetId==='nep141:wrap.near')??near[0]);setDestination(near.find(token=>displaySymbol(token)==='USDC')??near.find(token=>token.assetId!==(near[0]?.assetId)));}).catch(cause=>setError(cause instanceof Error?cause.message:'Could not load the live token registry.'));return()=>{active=false};},[]);
+  useEffect(()=>{if(live.session)void live.swaps().then(setHistory).catch(()=>undefined);else setHistory([]);},[live.session?.token]);
+  useEffect(()=>{setQuote(undefined);setStatus(undefined);setError(undefined);},[origin?.assetId,destination?.assetId,amount,slippage]);
+  const markets=useMemo(()=>tokens.filter(token=>tokenMatches(token,search)).filter(token=>marketFilter==='all'||(marketFilter==='stable'?stableSymbols.has(displaySymbol(token)):memeSymbols.has(displaySymbol(token)))).slice(0,60),[tokens,search,marketFilter]);
+  const inputValid=!!origin&&!!destination&&origin.assetId!==destination.assetId&&Number(amount)>0;
+  const quoteRequest=async(dry:boolean)=>{if(!live.session)throw new Error('Connect your NEAR wallet first.');if(!origin||!destination||!inputValid)throw new Error('Choose two different tokens and enter an amount.');const raw=toBaseUnits(amount,origin.decimals);if(BigInt(raw)<=0n)throw new Error('Amount is too small.');return client.quote({dry,swapType:'EXACT_INPUT',slippageTolerance:slippage,originAsset:origin.assetId,destinationAsset:destination.assetId,amount:raw,depositType:'ORIGIN_CHAIN',refundTo:live.session.accountId,refundType:'ORIGIN_CHAIN',recipient:live.session.accountId,recipientType:'DESTINATION_CHAIN',deadline:new Date(Date.now()+10*60_000).toISOString()});};
+  const preview=async()=>{setBusy(true);setError(undefined);try{setQuote(await quoteRequest(true));}catch(cause){setError(cause instanceof Error?cause.message:'No live route is currently available for this pair.');}finally{setBusy(false);}};
+  const execute=async()=>{setBusy(true);setError(undefined);setStatus('Creating a fresh executable quote…');try{if(!origin||!destination||!live.session)throw new Error('Connect your wallet and choose a token pair.');const executable=await quoteRequest(false),depositAddress=executable.quote.depositAddress;if(!depositAddress)throw new Error('1Click did not return a deposit address. No transaction was created.');setQuote(executable);setStatus('Review and approve the exact transfer in your NEAR wallet.');const wallet=await nearWallet(),raw=executable.quote.amountIn;let outcome;
+      if(origin.assetId==='nep141:wrap.near')outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:live.session.accountId,receiverId:'wrap.near',actions:[{type:'FunctionCall',params:{methodName:'near_deposit',args:{},gas:'30000000000000',deposit:raw}},{type:'FunctionCall',params:{methodName:'ft_transfer',args:{receiver_id:depositAddress,amount:raw,memo:'Scion 1Click swap'},gas:'30000000000000',deposit:'1'}}]});
+      else outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:live.session.accountId,receiverId:contract(origin),actions:[{type:'FunctionCall',params:{methodName:'ft_transfer',args:{receiver_id:depositAddress,amount:raw,memo:'Scion 1Click swap'},gas:'30000000000000',deposit:'1'}}]});
+      const txHash=outcome.transaction.hash;setStatus('Deposit sent. Waiting for solver settlement…');await client.submitDeposit({txHash,depositAddress,nearSenderAccount:live.session.accountId});let settled:'SUCCESS'|'REFUNDED'|'FAILED'|undefined;for(let attempt=0;attempt<60;attempt+=1){const result=await client.status({depositAddress});setStatus(`Settlement: ${result.status.replaceAll('_',' ').toLowerCase()}`);if(['SUCCESS','REFUNDED','FAILED'].includes(result.status)){settled=result.status as typeof settled;break;}await new Promise(resolve=>window.setTimeout(resolve,5000));}if(settled!=='SUCCESS')throw new Error(settled==='REFUNDED'?'The swap was refunded.':'The swap did not settle successfully.');
+      const saved=await live.recordSwap({txHash,depositAddress,originAsset:origin.assetId,destinationAsset:destination.assetId,originSymbol:displaySymbol(origin),destinationSymbol:displaySymbol(destination),amountIn:executable.quote.amountIn,amountOut:executable.quote.amountOut,amountInFormatted:executable.quote.amountInFormatted??amount,amountOutFormatted:executable.quote.amountOutFormatted});setHistory(current=>[saved,...current.filter(item=>item.id!==saved.id)]);if(strategyId)await live.recordExecution({strategyId,txHash,status:'SUCCESS',depositAddress,amountIn:executable.quote.amountIn,amountOut:executable.quote.amountOut,originContract:contract(origin)});await live.refreshBalances();setStatus('Swap settled and added to your Scion portfolio history.');
+    }catch(cause){setError(cause instanceof Error?cause.message:'The swap could not be completed.');setStatus(undefined);}finally{setBusy(false);}};
+  const pickMarket=(token:OneClickToken)=>{setDestination(token);if(origin?.assetId===token.assetId)setOrigin(tokens.find(item=>item.assetId==='nep141:wrap.near'&&item.assetId!==token.assetId)??tokens.find(item=>item.assetId!==token.assetId));window.scrollTo({top:0,behavior:'smooth'});};
 
-  async function requestQuote(dry: boolean) {
-    if (!live.session || !valid) throw new Error(`Enter between 0 and ${MAX_NEAR} NEAR.`);
-    const tokens = await client.tokens();
-    const near = tokens.find((token) => token.assetId === 'nep141:wrap.near');
-    const usdc = tokens.find((token) => token.blockchain.toLowerCase() === 'near' && token.symbol.toUpperCase() === 'USDC');
-    if (!near || !usdc) throw new Error('The live 1Click token registry does not currently list NEAR and NEAR USDC.');
-    return client.quote({
-      dry,
-      swapType: 'EXACT_INPUT',
-      slippageTolerance: 100,
-      originAsset: near.assetId,
-      destinationAsset: usdc.assetId,
-      amount: toYocto(amount).toString(),
-      depositType: 'ORIGIN_CHAIN',
-      refundTo: live.session.accountId,
-      refundType: 'ORIGIN_CHAIN',
-      recipient: live.session.accountId,
-      recipientType: 'DESTINATION_CHAIN',
-      deadline: new Date(Date.now() + 10 * 60_000).toISOString(),
-    });
-  }
-
-  async function preview() {
-    setBusy(true); setError(undefined); setStatus(undefined);
-    try { setQuote(await requestQuote(true)); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not obtain a live quote.'); }
-    finally { setBusy(false); }
-  }
-
-  async function execute() {
-    setBusy(true); setError(undefined); setStatus('Creating a fresh executable quote…');
-    try {
-      const executable = await requestQuote(false);
-      const depositAddress = executable.quote.depositAddress;
-      if (!depositAddress) throw new Error('1Click did not return a deposit address. No transaction was created.');
-      if (BigInt(executable.quote.amountIn) > toYocto(MAX_NEAR)) throw new Error('Safety cap rejected a quote above 0.1 NEAR.');
-      setQuote(executable);
-      setStatus('Review and approve the transaction in your NEAR wallet.');
-      const wallet = await nearWallet();
-      const outcome = await wallet.signAndSendTransaction({
-        network: 'mainnet',
-        signerId: live.session!.accountId,
-        receiverId: 'wrap.near',
-        actions: [
-          { type: 'FunctionCall', params: { methodName: 'near_deposit', args: {}, gas: '30000000000000', deposit: executable.quote.amountIn } },
-          { type: 'FunctionCall', params: { methodName: 'ft_transfer', args: { receiver_id: depositAddress, amount: executable.quote.amountIn, memo: 'Scion 1Click swap' }, gas: '30000000000000', deposit: '1' } },
-        ],
-      });
-      const txHash = outcome.transaction.hash;
-      setStatus('Deposit sent. Waiting for NEAR Intents settlement…');
-      await client.submitDeposit({ txHash, depositAddress, nearSenderAccount: live.session!.accountId });
-      let settled:'SUCCESS'|'REFUNDED'|'FAILED'|undefined;
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        const result = await client.status({ depositAddress });
-        setStatus(`Settlement: ${result.status.replaceAll('_', ' ').toLowerCase()}`);
-        if (['SUCCESS', 'REFUNDED', 'FAILED'].includes(result.status)) { settled=result.status as typeof settled; break; }
-        await new Promise((resolve) => window.setTimeout(resolve, 5000));
-      }
-      if(settled==='SUCCESS'&&strategyId)await live.recordExecution({strategyId,txHash,status:'SUCCESS',depositAddress,amountIn:executable.quote.amountIn,amountOut:executable.quote.amountOut});
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'The swap could not be completed.'); setStatus(undefined); }
-    finally { setBusy(false); }
-  }
-
-  if (!live.session) return <div className="box"><div className="box-body"><h2 className="h2">Live NEAR → USDC</h2><p className="muted">Connect and verify your NEAR wallet to request a mainnet quote.</p><button className="btn primary" onClick={() => void live.connect()}>Connect NEAR wallet</button></div></div>;
-
-  return (
-    <div className="box" style={{ marginBottom: 18 }}>
-      <div className="box-head"><div><h2 className="h2">Live NEAR → USDC</h2><div className="small faint">NEAR mainnet · real funds · powered by 1Click / NEAR Intents</div></div><span className="pill">0.1 NEAR cap</span></div>
-      <div className="box-body" style={{ display: 'grid', gap: 12 }}>
-        <label className="label">You pay<input className="input" type="number" min="0.001" max={MAX_NEAR} step="0.001" value={amount} onChange={(event) => { setAmount(Number(event.target.value)); setQuote(undefined); }} /></label>
-        <div className="small muted">Connected as <b>{live.session.accountId}</b>. Scion never receives your private key.</div>
-        {owned.length>0&&<label className="label">Attach successful receipt to strategy<select className="input" value={strategyId} onChange={(event)=>setStrategyId(event.target.value)}><option value="">Do not attach</option>{owned.map((strategy)=><option value={strategy.id} key={strategy.id}>{strategy.name}</option>)}</select></label>}
-        {quote && <dl className="kv"><dt>Estimated USDC</dt><dd>{output}</dd><dt>Minimum received</dt><dd>{quote.quote.minAmountOut ?? 'Included in signed quote'}</dd><dt>Estimated time</dt><dd>{quote.quote.timeEstimate ? `${quote.quote.timeEstimate}s` : 'Provided after execution quote'}</dd></dl>}
-        {status && <div className="small strong" aria-live="polite">{status}</div>}
-        {error && <div className="small" style={{ color: 'var(--danger)' }} role="alert">{error}</div>}
-        {!quote ? <button className="btn primary lg" disabled={busy || !valid} onClick={() => void preview()}>{busy ? 'Getting live quote…' : 'Get live quote'}</button>
-          : <button className="btn primary lg" disabled={busy || !valid} onClick={() => void execute()}>{busy ? 'Waiting…' : `Review wallet & swap ${amount} NEAR`}</button>}
-        <p className="small faint">The final click opens your wallet with the exact contract actions. Funds move only if you approve there. An unauthenticated 1Click platform fee is included in its quote.</p>
-      </div>
-    </div>
-  );
+  return <div className="view"><div className="pagehead"><div><h1 className="title">Markets & swap</h1><p className="muted">Search every NEAR asset currently routable through 1Click, verify a live quote, and swap from your own wallet.</p></div><span className="pill gain"><span className="live-dot"/> {tokens.length||'…'} live NEAR markets</span></div>
+    <div className="repo"><div style={{display:'grid',gap:16}}><div className="box"><div className="box-head"><div><h2 className="h2">Swap any routable token</h2><p className="small muted">Real funds · NEAR mainnet · 1Click / NEAR Intents</p></div><span className="pill">Wallet approval required</span></div><div className="box-body" style={{display:'grid',gap:14}}>
+      {!live.session&&<div className="well"><b>Connect to trade</b><p className="small muted">Browse prices without signing in. A verified NEAR wallet is required only when requesting or executing your quote.</p><button className="btn primary" onClick={()=>void live.connect()}><Icon n="wallet" s={14}/> Connect NEAR wallet</button></div>}
+      <div className="formgrid"><TokenSelect label="You pay" value={origin} tokens={tokens.filter(token=>token.assetId!==destination?.assetId)} onChange={setOrigin}/><TokenSelect label="You receive" value={destination} tokens={tokens.filter(token=>token.assetId!==origin?.assetId)} onChange={setDestination}/></div>
+      <label className="field"><span>Amount ({origin?displaySymbol(origin):'token'})</span><input className="input" inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)} placeholder="0.0"/></label>
+      {origin&&destination&&<div className="row" style={{justifyContent:'space-between'}}><span className="small faint">{origin.price?`≈ ${usd(Number(amount||0)*origin.price)}`:'Price unavailable'} · {shorten(contract(origin))}</span><button className="btn sm" onClick={()=>{setOrigin(destination);setDestination(origin);}}><Icon n="swap" s={13}/> Reverse</button></div>}
+      <div className="row" style={{justifyContent:'space-between'}}><span className="small muted">Maximum slippage</span><div className="seg2">{[50,100,200].map(value=><button key={value} aria-pressed={slippage===value} onClick={()=>setSlippage(value)}>{value/100}%</button>)}</div></div>
+      {quote&&origin&&destination&&<dl className="kv"><dt>You pay</dt><dd>{quote.quote.amountInFormatted??amount} {displaySymbol(origin)}</dd><dt>Estimated output</dt><dd>{quote.quote.amountOutFormatted??quote.quote.amountOut} {displaySymbol(destination)}</dd><dt>Minimum output</dt><dd>{quote.quote.minAmountOut??'Protected by signed quote'}</dd><dt>Estimated settlement</dt><dd>{quote.quote.timeEstimate?`${quote.quote.timeEstimate}s`:'Calculated on execution'}</dd></dl>}
+      {owned.length>0&&<label className="field"><span>Attach successful swap to strategy (optional)</span><select className="input" value={strategyId} onChange={event=>setStrategyId(event.target.value)}><option value="">Portfolio history only</option>{owned.map(strategy=><option value={strategy.id} key={strategy.id}>{strategy.name}</option>)}</select></label>}
+      {status&&<div className="small strong" aria-live="polite">{status}</div>}{error&&<div className="small loss" role="alert">{error}</div>}
+      {!quote?<button className="btn primary lg" disabled={busy||!inputValid||!live.session} onClick={()=>void preview()}>{busy?'Checking solver liquidity…':'Get live quote'}</button>:<button className="btn primary lg" disabled={busy||!inputValid} onClick={()=>void execute()}>{busy?'Waiting for settlement…':`Review wallet & swap ${amount} ${origin?displaySymbol(origin):''}`}</button>}
+      <p className="small faint">Only assets returned by the live 1Click registry are enabled. A search result does not guarantee liquidity; the signed quote is the route check. Scion never receives your private key.</p>
+    </div></div>
+      <section><div className="pagehead" style={{marginBottom:12}}><div><h2 className="h2">Live NEAR markets</h2><p className="small muted">Registry prices are for display. Executions always use actual base-unit quote amounts.</p></div></div><div className="row" style={{marginBottom:12}}><label className="search" style={{flex:1}}><Icon n="search"/><input className="input" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search symbol, CoinGecko name, contract or asset address"/></label><div className="seg2">{(['all','stable','meme'] as const).map(value=><button key={value} aria-pressed={marketFilter===value} onClick={()=>setMarketFilter(value)}>{value==='all'?'All':value==='stable'?'Stablecoins':'Memecoins'}</button>)}</div></div><div className="box table-wrap"><table><thead><tr><th>Token</th><th>Contract</th><th className="num">Live price</th><th className="num">Trade</th></tr></thead><tbody>{markets.map(token=><tr key={token.assetId}><td><b>{displaySymbol(token)}</b><div className="small faint">{token.coingeckoId??'NEAR token'}</div></td><td className="mono small">{shorten(contract(token))}</td><td className="num strong">{marketPrice(token.price)}</td><td className="num"><button className="btn sm" onClick={()=>pickMarket(token)}>Buy / swap</button></td></tr>)}</tbody></table>{!markets.length&&<div className="empty">No routable NEAR token matches “{search}”. Check the contract address or try another asset.</div>}</div></section>
+    </div><aside className="about"><div className="box"><div className="box-head"><h2 className="h3">Verified swap history</h2><span className="small faint">{history.length}</span></div>{!live.session?<div className="box-body small muted">Connect your wallet to load private purchase history.</div>:history.length?history.slice(0,10).map(item=><div className="box-body small" key={item.id}><b>{item.amountInFormatted??item.amountIn} {item.originSymbol} → {item.amountOutFormatted??item.amountOut} {item.destinationSymbol}</b><div className="row" style={{justifyContent:'space-between'}}><span className="gain">Verified settled</span><span className="faint">{new Date(item.createdAt).toLocaleDateString()}</span></div><div className="mono faint">{shorten(item.txHash)}</div></div>):<div className="box-body small muted">Your settled swaps will appear here and feed portfolio tracking.</div>}</div><div className="well small"><b>Route safety</b><p className="muted">Scion creates the executable quote only after preview. The final NEP-141 transfer is shown in your wallet, and failed swaps are handled by the 1Click refund address in the signed quote.</p></div></aside></div>
+  </div>;
 }

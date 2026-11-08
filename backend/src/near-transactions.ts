@@ -13,11 +13,12 @@ export class NearTransactionVerifier {
     return this.proof({kind:'near-usdc-payment',sub:actor,txHash:input.txHash,offerId:plan.offerId,contractId:this.usdcContract,protocolReceiver:this.treasury,amountMinor:plan.amountMinor,currency:'USDC',planHash:hash(plan),settledAt:this.now().toISOString()});
   }
   async verifyExecution(actor:string,input:any){
-    const tx=await this.transaction(actor,input?.txHash),depositAddress=String(input?.depositAddress??''),amountIn=String(input?.amountIn??'');
+    const tx=await this.transaction(actor,input?.txHash),depositAddress=String(input?.depositAddress??''),amountIn=String(input?.amountIn??''),originContract=String(input?.originContract??'wrap.near');
     if(!/^[a-z0-9._-]{2,64}$/i.test(depositAddress)||!/^\d+$/.test(amountIn)||BigInt(amountIn)<=0n)throw new DomainError('invalid_execution','Execution details are invalid');
-    const action=this.functionCall(tx,'ft_transfer','wrap.near'),args=this.args(action);
+    if(!/^[a-z0-9._-]{2,100}$/i.test(originContract))throw new DomainError('invalid_execution','Origin token contract is invalid');
+    const action=this.functionCall(tx,'ft_transfer',originContract),args=this.args(action);
     if(args.receiver_id!==depositAddress||String(args.amount)!==amountIn)throw new DomainError('execution_mismatch','Finalized transaction does not match the submitted 1Click deposit',422);
-    return this.proof({kind:'near-intents-execution',sub:actor,txHash:input.txHash,depositAddress,amountIn,settledAt:this.now().toISOString()});
+    return this.proof({kind:'near-intents-execution',sub:actor,txHash:input.txHash,depositAddress,amountIn,originContract,settledAt:this.now().toISOString()});
   }
   private proof(value:Record<string,unknown>){const exp=new Date(this.now().getTime()+10*60_000).toISOString(),payload=Buffer.from(JSON.stringify({...value,exp})).toString('base64url');return {proof:signToken(payload,this.secret),txHash:value.txHash,settledAt:value.settledAt,expiresAt:exp};}
   private checkoutPlan(actor:string,token:unknown){if(typeof token!=='string')throw new DomainError('checkout_plan_required','A signed checkout plan is required',422);const raw=verifyToken(token,this.secret);if(!raw)throw new DomainError('invalid_checkout_plan','Checkout plan signature is invalid',422);let plan:any;try{plan=JSON.parse(Buffer.from(raw,'base64url').toString())}catch{throw new DomainError('invalid_checkout_plan','Checkout plan is malformed',422)}if(plan.kind!=='checkout-plan'||plan.sub!==actor||plan.contractId!==this.usdcContract||plan.protocolReceiver!==this.treasury||new Date(plan.exp)<=this.now()||!Array.isArray(plan.transfers))throw new DomainError('invalid_checkout_plan','Checkout plan is expired or does not match this wallet',422);return plan;}

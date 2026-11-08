@@ -76,7 +76,7 @@ create table if not exists scion_private.product_objects (
   payload jsonb not null, created_at timestamptz not null, updated_at timestamptz not null
 );
 alter table scion_private.product_objects drop constraint if exists product_objects_object_type_check;
-alter table scion_private.product_objects add constraint product_objects_object_type_check check (object_type in ('profile','follow','like','comment','notification','session','block','report','audit','invite','agent','agent_proposal','agent_event','play','room','room_message','portfolio','nft','attestation','gateway_event','suggestion','stance'));
+alter table scion_private.product_objects add constraint product_objects_object_type_check check (object_type in ('profile','follow','like','comment','notification','session','block','report','audit','invite','agent','agent_proposal','agent_event','live_swap','play','room','room_message','portfolio','nft','attestation','gateway_event','suggestion','stance'));
 alter table scion_private.ledger_entries drop constraint if exists ledger_entries_kind_check;
 alter table scion_private.ledger_entries add constraint ledger_entries_kind_check check (kind in ('creator_revenue','upstream_royalty','protocol_fee'));
 

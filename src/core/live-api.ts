@@ -47,6 +47,7 @@ export type LiveCommerce={paymentsEnabled:boolean;paymentConfig?:{contractId:str
 export type LiveInviteStatus={required:boolean;admitted:boolean;remaining:number;invites:{id:string;usedBy?:string;createdAt:string}[]};
 export type LiveAgentPolicy={allowedAssets:string[];maxTradeMinor:number;dailyLimitMinor:number;maxAllocationBps:number;maxSlippageBps:number;maxLeverageBps:number;requiresOwnerApproval:boolean};
 export type LiveAgentProposal={id:string;agentId:string;action:'watch'|'trade';thesis:string;rationale:string;asset?:string;side?:'buy'|'sell';notionalMinor?:number;confidence:number;status:string;executionState:string;createdAt:string};
+export type LiveSwap={id:string;txHash:string;depositAddress:string;originAsset:string;destinationAsset:string;originSymbol:string;destinationSymbol:string;amountIn:string;amountOut:string;amountInFormatted?:string;amountOutFormatted?:string;status:'SUCCESS';verified:true;createdAt:string};
 export type LiveAgent={id:string;owner:string;name:string;handle:string;description:string;mode:'research'|'proposal'|'bounded';status:'active'|'paused'|'revoked';visibility:'public'|'private';executionAccount?:string;automationReady:boolean;scheduleEnabled?:boolean;scheduleHours?:number;demo?:boolean;policy:LiveAgentPolicy;policyHash:string;stats:{proposals:number;wins:number;losses:number;verifiedExecutions:number};proposals?:LiveAgentProposal[];createdAt:string;updatedAt:string};
 
 type ApiEnvelope<T> = { data: T };
@@ -94,7 +95,7 @@ export class LiveApi {
   async checkoutPlan(token:string,offerId:string){return (await this.request<ApiEnvelope<{token:string;contractId:string;amountMinor:number;transfers:{receiverId:string;amountMinor:number;kind:string}[]}>>('/v1/access/checkout-plan',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({offerId})})).data;}
   async verifyPayment(token:string,txHash:string,checkoutPlan:string){return (await this.request<ApiEnvelope<{proof:string;txHash:string}>>('/v1/auth/transactions/payment',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({txHash,checkoutPlan})})).data;}
   async purchase(token:string,offerId:string,settlementProof:string,idempotencyKey:string){return (await this.request<ApiEnvelope<{purchase:unknown;capabilityToken:string}>>('/v1/access/purchases',{method:'POST',headers:{authorization:`Bearer ${token}`,'idempotency-key':idempotencyKey},body:JSON.stringify({offerId,settlementProof})})).data;}
-  async verifyExecution(token:string,input:{txHash:string;depositAddress:string;amountIn:string}){return (await this.request<ApiEnvelope<{proof:string}>>('/v1/auth/transactions/execution',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async verifyExecution(token:string,input:{txHash:string;depositAddress:string;amountIn:string;originContract?:string}){return (await this.request<ApiEnvelope<{proof:string}>>('/v1/auth/transactions/execution',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
   async createFork(token:string,input:{parentVersionId:string;name:string;slug:string;changes:Record<string,unknown>;capabilityToken?:string}){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>('/v1/forks',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   async authChallenge() {
@@ -125,6 +126,8 @@ export class LiveApi {
   async myStrategies(token:string){return (await this.request<ApiEnvelope<LiveStrategy[]>>('/v1/my/strategies',{headers:{authorization:`Bearer ${token}`}})).data;}
   async updateStrategy(token:string,id:string,input:Partial<CreateLiveStrategy>){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>(`/v1/strategies/${encodeURIComponent(id)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
   async recordExecution(token:string,input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn:string;amountOut?:string;verificationProof:string}){return (await this.request<ApiEnvelope<LiveExecution>>('/v1/executions/receipts',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
+  async swaps(token:string){return (await this.request<ApiEnvelope<LiveSwap[]>>('/v1/swaps',{headers:{authorization:`Bearer ${token}`}})).data;}
+  async recordSwap(token:string,input:Omit<LiveSwap,'id'|'status'|'verified'|'createdAt'> & {verificationProof:string}){return (await this.request<ApiEnvelope<LiveSwap>>('/v1/swaps',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
   private async request<T>(path: string, init: RequestInit = {},timeoutMs=10_000): Promise<T> {
     const controller = new AbortController();
