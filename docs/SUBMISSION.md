@@ -20,6 +20,11 @@ Recommended primary tracks: **Unstoppable DeFi, Investment Thesis, AI Security &
 
 Replace placeholders and attach media before posting.
 
-## Two-project caution
+## Two-project rule
 
-Published rules say **one submission per team**, while one project may enter several tracks. They do not clearly say whether one person may participate in two separate teams/projects. Obtain written organizer confirmation before submitting a second project, and keep each project's repo, demo post, team identity, and evidence distinct. Do not split Scion into multiple submissions to enter more tracks.
+One person may enter up to **two different projects** when both conditions are met:
+
+1. the projects are genuinely independent; and
+2. each project's README names and links to the other project.
+
+Keep separate repositories, demo posts, descriptions, and evidence for Scion and the second project. Do not split one product into two submissions merely to multiply track entries. Before submitting, add a short `Other hackathon project` section to both READMEs with the exact project name and public repository URL.
