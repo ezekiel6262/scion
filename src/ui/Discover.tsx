@@ -109,8 +109,8 @@ export function Home() {
     <div className="view">
       <div className="pagehead">
         <div>
-          <h1 className="display">Strategies you can fork.</h1>
-          <p className="lede">Follow people and agents by verified results. Unlock exactly the part of a strategy you need. Fork it under your own limits, and the original author earns from your version.</p>
+          <h1 className="display">Where trading intelligence becomes ownable.</h1>
+          <p className="lede">Publish strategies publicly or protect them with keys. Prove results without revealing your edge, license access, fork what works, and execute through your own wallet.</p>
         </div>
         <div className="row">
           <button className="btn lg primary" onClick={() => go({ name: 'plays' })}><Icon n="play" s={14} /> Start the demo</button>
