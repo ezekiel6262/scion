@@ -89,6 +89,7 @@ export class LiveApi {
   async setAgentStatus(token:string,id:string,status:'active'|'paused'|'revoked'){return (await this.request<ApiEnvelope<LiveAgent>>(`/v1/agents/${encodeURIComponent(id)}/status`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({status})})).data;}
   async createAgentProposal(token:string,id:string,input:{action:'watch'|'trade';thesis:string;rationale:string;asset?:string;side?:'buy'|'sell';notionalMinor?:number;confidence:number}){return (await this.request<ApiEnvelope<LiveAgentProposal>>(`/v1/agents/${encodeURIComponent(id)}/proposals`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
   async decideAgentProposal(token:string,id:string,decision:'approve'|'reject'){return (await this.request<ApiEnvelope<LiveAgentProposal>>(`/v1/agent-proposals/${encodeURIComponent(id)}/decision`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({decision})})).data;}
+  async runAgent(token:string,agentId:string){return (await this.request<ApiEnvelope<{agentId:string;run:{id:string;model:string;inputTokens:number;outputTokens:number;latencyMs:number};proposal:LiveAgentProposal}>>('/v1/agent-runtime/run',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({agentId})},90_000)).data;}
   async createOffer(token:string,input:{versionId:string;scopes:string[];expiresInSeconds:number;priceMinor:number}){return (await this.request<ApiEnvelope<LiveOffer>>('/v1/access/offers',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
   async checkoutPlan(token:string,offerId:string){return (await this.request<ApiEnvelope<{token:string;contractId:string;amountMinor:number;transfers:{receiverId:string;amountMinor:number;kind:string}[]}>>('/v1/access/checkout-plan',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({offerId})})).data;}
   async verifyPayment(token:string,txHash:string,checkoutPlan:string){return (await this.request<ApiEnvelope<{proof:string;txHash:string}>>('/v1/auth/transactions/payment',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify({txHash,checkoutPlan})})).data;}
@@ -125,9 +126,9 @@ export class LiveApi {
   async updateStrategy(token:string,id:string,input:Partial<CreateLiveStrategy>){return (await this.request<ApiEnvelope<{strategy:LiveStrategy;version:LiveStrategy['latestVersion']}>>(`/v1/strategies/${encodeURIComponent(id)}`,{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
   async recordExecution(token:string,input:{strategyId:string;txHash:string;status:'SUCCESS';depositAddress:string;amountIn:string;amountOut?:string;verificationProof:string}){return (await this.request<ApiEnvelope<LiveExecution>>('/v1/executions/receipts',{method:'POST',headers:{authorization:`Bearer ${token}`},body:JSON.stringify(input)})).data;}
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {},timeoutMs=10_000): Promise<T> {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await this.fetcher(`${this.baseUrl}${path}`, {
         ...init,

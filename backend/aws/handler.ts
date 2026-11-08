@@ -15,7 +15,7 @@ async function initialize() {
   const admins=(process.env.SCION_ADMIN_ACCOUNTS??'').split(',').map(v=>v.trim()).filter(Boolean);
   const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret,undefined,settlement,true,paymentsEnabled,paymentsEnabled?{contractId:contract!,treasury:treasury!}:undefined,admins);
   await service.seed();
-  return createHandler(service, new WalletAuthService(await createAuthStore(), secret));
+  return createHandler(service, new WalletAuthService(await createAuthStore(), secret),secret);
 }
 
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {

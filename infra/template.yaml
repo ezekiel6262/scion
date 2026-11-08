@@ -28,10 +28,18 @@ Parameters:
   CloudFrontCertificateArn:
     Type: String
     Default: ''
+  AgentModelId:
+    Type: String
+    Default: eu.anthropic.claude-haiku-4-5-20251001-v1:0
+  AgentSchedulesEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
 
 Conditions:
   HasBillingAlertEmail: !Not [!Equals [!Ref BillingAlertEmail, '']]
   HasCustomDomain: !And [!Not [!Equals [!Ref CustomDomainName, '']], !Not [!Equals [!Ref CloudFrontCertificateArn, '']]]
+  RunAgentSchedules: !Equals [!Ref AgentSchedulesEnabled, 'true']
 
 Globals:
   Function:
@@ -284,6 +292,44 @@ Resources:
         Sourcemap: true
         OutExtension: ['.js=.cjs']
 
+  AgentRunnerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend
+      Handler: aws/agent-runner.handler
+      Timeout: 90
+      Environment:
+        Variables:
+          SCION_SITE_URL: https://d30lp8j3k8uetx.cloudfront.net
+          SCION_AGENT_MODEL_ID: !Ref AgentModelId
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [bedrock:InvokeModel]
+              Resource: '*'
+      Events:
+        ManualRun:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ScionApi
+            Path: /api/v1/agent-runtime/run
+            Method: ANY
+        ScheduledRuns:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(6 hours)
+            State: !If [RunAgentSchedules, ENABLED, DISABLED]
+            Input: '{"source":"scion.schedule"}'
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [aws/agent-runner.ts]
+        Format: cjs
+        Minify: true
+        Target: es2022
+        Sourcemap: true
+        OutExtension: ['.js=.cjs']
+
   FrontendBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -430,6 +476,20 @@ Resources:
       Period: 300
       EvaluationPeriods: 1
       Threshold: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AgentRunnerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scion agent model runtime errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{Name: FunctionName, Value: !Ref AgentRunnerFunction}]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 2
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 

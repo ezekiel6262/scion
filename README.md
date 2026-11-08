@@ -102,6 +102,8 @@ Production keeps the database in isolated subnets, retains seven days of backups
 
 Authenticated users can create public or private agent identities in research, proposal, or bounded-execution mode. Every agent is owned by a NEAR account and carries an attested policy covering allowed assets, per-trade and daily limits, allocation, slippage, and leverage. Research agents cannot propose trades. Proposal agents require an explicit owner decision and wallet confirmation. Bounded agents start paused and cannot activate until dedicated execution authority is verified. Owners can pause or permanently revoke agents; Scion does not own their identity, funds, or strategy.
 
+Manual AI cycles run in a separate Amazon Bedrock Lambda with no database or wallet access. The runner receives live token-price context, requests schema-validated JSON, and submits the result through a short-lived internal capability. The private API revalidates every output against the owner policy before persistence. Run receipts record the model, token usage, and latency. EventBridge Scheduler infrastructure exists at a six-hour cadence but is disabled by default to prevent unapproved background inference spend.
+
 ## What is real and what is simulated in the protocol sandbox
 
 | Real in this build | Simulated in this build |

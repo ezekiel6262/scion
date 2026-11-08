@@ -1,7 +1,7 @@
-import { DomainError } from './domain.ts'; import type { ScionService } from './service.ts'; import type { WalletAuthService } from './auth.ts'; import { randomUUID } from 'node:crypto';
+import { DomainError } from './domain.ts'; import type { ScionService } from './service.ts'; import type { WalletAuthService } from './auth.ts'; import { randomUUID } from 'node:crypto'; import { verifyToken } from './crypto.ts';
 
 const json=(body:unknown,status=200,requestId?:string)=>Response.json(body,{status,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type,idempotency-key,x-near-account,x-view-key','access-control-allow-methods':'GET,POST,OPTIONS','x-request-id':requestId??''}});
-export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(request:Request)=>{
+export const createHandler=(service:ScionService,auth:WalletAuthService,internalSecret?:string)=>async(request:Request)=>{
   const requestId=randomUUID(),url=new URL(request.url),path=(url.pathname.replace(/^\/api(?=\/|$)/,'').replace(/\/$/,'')||'/');
   if(request.method==='OPTIONS')return json({},204,requestId);let actor:string|undefined;
   try{
@@ -34,6 +34,7 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
     agentRoute=path.match(/^\/v1\/agents\/([^/]+)\/status$/);if(request.method==='POST'&&agentRoute){const b=await request.json() as any;return json({data:await service.setAgentStatus(requireActor(actor),agentRoute[1],b.status)},200,requestId);}
     agentRoute=path.match(/^\/v1\/agents\/([^/]+)\/proposals$/);if(request.method==='POST'&&agentRoute)return json({data:await service.createAgentProposal(requireActor(actor),agentRoute[1],await request.json())},201,requestId);
     agentRoute=path.match(/^\/v1\/agent-proposals\/([^/]+)\/decision$/);if(request.method==='POST'&&agentRoute){const b=await request.json() as any;return json({data:await service.decideAgentProposal(requireActor(actor),agentRoute[1],b.decision)},200,requestId);}
+    agentRoute=path.match(/^\/v1\/internal\/agents\/([^/]+)\/cycle$/);if(request.method==='POST'&&agentRoute){verifyInternalAgent(request,internalSecret,agentRoute[1]);const b=await request.json() as any;return json({data:await service.createAutomatedAgentProposal(agentRoute[1],b.proposal,b.run)},201,requestId);}
     if(request.method==='GET'&&path==='/v1/my/strategies')return json({data:await service.myStrategies(requireActor(actor))},200,requestId);
     if(request.method==='GET'&&path==='/v1/me')return json({data:{accountId:requireActor(actor),profile:await service.profile(requireActor(actor))}},200,requestId);
     if(request.method==='POST'&&path==='/v1/profile')return json({data:await service.saveProfile(requireActor(actor),await request.json())},200,requestId);
@@ -57,3 +58,4 @@ export const createHandler=(service:ScionService,auth:WalletAuthService)=>async(
 function requireActor(actor?:string){if(!actor)throw new DomainError('unauthorized','A valid bearer session is required',401);return actor;}
 function resolveActor(request:Request,auth:WalletAuthService){const authorization=request.headers.get('authorization');if(authorization?.startsWith('Bearer '))return auth.actorFromToken(authorization.slice(7));const dev=request.headers.get('x-near-account');if(dev&&(process.env.NODE_ENV!=='production'||process.env.SCION_ALLOW_DEV_HEADER==='true'))return dev;return undefined;}
 function bearerToken(request:Request){const value=request.headers.get('authorization');return value?.startsWith('Bearer ')?value.slice(7):undefined;}
+function verifyInternalAgent(request:Request,secret:string|undefined,agentId:string){const token=request.headers.get('x-scion-agent-token');if(!secret||!token)throw new DomainError('unauthorized','Agent runtime authorization is required',401);const raw=verifyToken(token,secret);if(!raw)throw new DomainError('unauthorized','Agent runtime authorization is invalid',401);let value:any;try{value=JSON.parse(Buffer.from(raw,'base64url').toString())}catch{throw new DomainError('unauthorized','Agent runtime authorization is malformed',401)}if(value.purpose!=='agent-cycle'||value.agentId!==agentId||new Date(value.exp)<=new Date())throw new DomainError('unauthorized','Agent runtime authorization is expired or mismatched',401);}
