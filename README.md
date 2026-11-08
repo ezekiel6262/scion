@@ -59,8 +59,10 @@ Scion is one project entered into several applicable tracks:
 1. **Unstoppable DeFi — primary.** Live token discovery, NEAR Intents quotes, user-approved swaps, follower risk limits, and non-custodial execution.
 2. **Investment Thesis — primary.** A sourced NEAR Intents thesis, committed data, transparent formulas, sensitivity inputs, and a one-command rerun. Read [THESIS.md](THESIS.md).
 3. **AI Security & Defense — primary.** Per-agent allowlists and caps, owner approval, paused-by-default execution, and revoke controls.
-4. **Agent Economy — emerging.** User-owned agents and dedicated NEAR subaccounts are live. Automatic attributable earnings and autonomous spending are pending.
-5. **Privacy & Private AI — conceptual fit.** Field-level sealing and scoped disclosure are implemented in the sandbox. Scion does **not** claim NEAR AI Cloud TEE inference or attestation.
+4. **Autonomous Business — strong emerging fit.** A strategy or user-owned agent can sell scoped access, receive verified revenue, share royalties through its lineage, and operate under owner-set constraints. Agent identities, dedicated NEAR subaccounts, checkout verification, revenue splits, policy controls, and the isolated research runner are implemented; a fully autonomous sale-to-payout loop is still pending.
+5. **Agent Economy — emerging.** User-owned agents and dedicated NEAR subaccounts are live. Automatic attributable earnings and autonomous spending are pending.
+6. **Privacy & Private AI — conceptual fit.** Field-level sealing and scoped disclosure are implemented in the sandbox. Scion does **not** claim NEAR AI Cloud TEE inference or attestation.
+7. **Open Innovation — strong cross-cutting fit.** Scion combines private intellectual-property markets, public performance proof, programmable access, persistent fork attribution, non-custodial execution, and bounded agent ownership into a protocol that does not fit a conventional trading or social category alone.
 
 We do not claim NFT, Swarms, or Memecoin Mechanics features that are only demos or future milestones.
 

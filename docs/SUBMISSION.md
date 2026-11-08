@@ -12,7 +12,7 @@
 - [ ] No seed phrase, key, secret, or database credential exists in Git history.
 - [ ] Run every command in `docs/JUDGING.md` on the final commit.
 
-Recommended primary tracks: **Unstoppable DeFi, Investment Thesis, AI Security & Defense**. Additional honest fit: Agent Economy (foundation live, attributable earnings pending) and Privacy & Private AI (sealed protocol, no TEE claim).
+Recommended primary tracks: **Unstoppable DeFi, Investment Thesis, AI Security & Defense, Autonomous Business, and Open Innovation**. Additional honest fit: Agent Economy (foundation live, attributable earnings pending) and Privacy & Private AI (sealed protocol, no TEE claim). For Autonomous Business, disclose that verified sales, revenue sharing, agent accounts, constraints, and ledger foundations are implemented while the fully autonomous sale-to-payout loop remains pending. Open Innovation is the cross-cutting protocol claim: private strategy IP, public proof, programmable access, fork attribution, and bounded agent ownership in one system.
 
 ## X post draft
 

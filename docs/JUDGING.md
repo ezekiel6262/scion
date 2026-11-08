@@ -40,9 +40,19 @@ Known gap: all 1Click terminal states, including failed/refunded deposits, shoul
 
 Agent policy covers allowed assets, per-trade/daily caps, allocation, slippage, and leverage. Proposal mode requires owner action. Bounded execution starts paused. The isolated runner lacks wallet/DB access; its output is revalidated. Owners can pause or revoke.
 
+### Autonomous Business
+
+Scion treats a strategy or user-owned agent as a constrained revenue-generating entity. `backend/src/service.ts` implements verified checkout, creator payment, protocol fee, and upstream royalty accounting; `backend/src/near-transactions.ts` verifies settlement; `backend/aws/agent-runner.ts` provides isolated research execution; and `src/ui/LiveAgents.tsx` exposes the owner's operating constraints and kill controls. Dedicated NEAR agent-account provisioning provides attributable identity.
+
+Known gap: the official reference prompt asks for a complete autonomous sale-to-cost-to-payout loop. Scion's components and ledger model exist, but the fully autonomous loop and automatic attributable agent payout are not yet claimed as shipped.
+
 ### Agent Economy
 
 Dedicated NEAR subaccount provisioning and user-owned agent identity are live. Automatic attributable earnings and autonomous spending remain future work.
+
+### Open Innovation
+
+Scion introduces a new ownership primitive for trading intelligence: an idea can remain private, be sold through scoped capabilities, produce public proofs, be forked under a different risk policy, and retain attribution and upstream economics across its descendants. This combines money, intelligence, privacy, and authorship rather than treating a strategy as either a static post or a custodial copy-trading account. The evidence spans `src/core/engine.ts`, `src/core/crypto.ts`, `src/core/policy.ts`, `src/ui/Lineage.tsx`, and the live commerce and execution paths.
 
 ## Commands
 
