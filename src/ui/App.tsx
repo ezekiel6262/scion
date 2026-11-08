@@ -20,8 +20,14 @@ import { LivePublicProfilePage } from './LiveSocial';
 import { LiveSecurity } from './LiveSecurity';
 import { LiveCommercePage } from './LiveCommerce';
 import { LiveAgentsPage } from './LiveAgents';
+import { DocsPage } from './Docs';
 
 const aliceStrat = (s: State) => Object.values(s.strategies).find((x) => x.owner === 'alice' && !x.seeded && !x.parent);
+const PUBLIC_VIEWS = new Set<Route['name']>(['home', 'plays', 'explore', 'agents', 'portfolio', 'trade', 'commerce', 'account', 'security', 'docs']);
+const routeFromLocation = (): Route => {
+  const view = new URLSearchParams(location.search).get('view') as Route['name'] | null;
+  return view && PUBLIC_VIEWS.has(view) ? { name: view } as Route : { name: 'home' };
+};
 
 function steps(s: State) {
   const aid = aliceStrat(s)?.id;
@@ -135,14 +141,27 @@ function PersonaSwitch() {
 export function App() {
   const s = useStore();
   const live = useLive();
-  const [route, setRoute] = useState<Route>({ name: 'home' });
+  const [route, setRoute] = useState<Route>(routeFromLocation);
   const [bellOpen, setBellOpen] = useState(false);
   const [more, setMore] = useState(false);
   const [exec, setExec] = useState<{ sid: string; orders: PlannedOrder[]; slippage: number; manual: boolean } | null>(null);
-  const go = useCallback((r: Route) => { setRoute(r); window.scrollTo({ top: 0 }); }, []);
+  const go = useCallback((r: Route) => {
+    setRoute(r);
+    const url = r.name === 'home' ? '/' : `/?view=${encodeURIComponent(r.name)}`;
+    history.pushState({ view: r.name }, '', url);
+    window.scrollTo({ top: 0 });
+  }, []);
   const execute = useCallback((sid: string, orders: PlannedOrder[], slippage: number, manual = true) => setExec({ sid, orders, slippage, manual }), []);
   const ui = useMemo(() => ({ go, execute }), [go, execute]);
   useEffect(() => { engine.init(); }, []);
+  useEffect(() => {
+    const back = () => {
+      setRoute(routeFromLocation());
+      window.scrollTo({ top: 0 });
+    };
+    addEventListener('popstate', back);
+    return () => removeEventListener('popstate', back);
+  }, []);
   useEffect(() => { if (route.name === 'strategy') engine.ownerView(route.id); }, [route, s.persona]);
 
   if (!s.ready) return <div className="loading">Generating wallet keys and sealing strategies</div>;
@@ -154,6 +173,7 @@ export function App() {
     ['Discover', [['home', 'Home', 'home'], ['plays', 'Plays', 'target', livePlays], ['explore', 'Explore', 'compass'],['agents','Trading agents','bot']]],
     ['You', [['portfolio', 'Portfolio', 'pie'], ['trade', 'Trade', 'swap'],['commerce','Access & earnings','coins']]],
     ['Account', [['account', 'Profile & wallet', 'user'], ['security', 'Security', 'shield']]],
+    ['Learn', [['docs', 'Docs & guide', 'doc']]],
   ];
   const nav = groups.flatMap(([, items]) => items);
   const mobileNav: [Route['name'], string, string][] = [['home', 'Home', 'home'], ['explore', 'Explore', 'compass'], ['trade', 'Trade', 'swap'], ['portfolio', 'Portfolio', 'pie'],['account','Account','user']];
@@ -226,6 +246,7 @@ export function App() {
             {route.name === 'account' && <AccountPage />}
             {route.name === 'commerce' && <LiveCommercePage />}
             {route.name === 'agents' && <LiveAgentsPage />}
+            {route.name === 'docs' && <DocsPage />}
             {route.name === 'strategy' && <StrategyPage id={route.id} tab={route.tab} />}
             {route.name === 'live-strategy' && <LiveStrategyPage id={route.id} />}
             {route.name === 'live-profile' && <LivePublicProfilePage account={route.id} />}

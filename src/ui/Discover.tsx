@@ -50,6 +50,25 @@ function How({ onClose }: { onClose: () => void }) {
   );
 }
 
+function OwnershipStory() {
+  const { go } = useUi();
+  return <section className="ownership-story" aria-labelledby="ownership-h">
+    <div className="ownership-copy">
+      <span className="eyebrow">One idea, many ways to own it</span>
+      <h2 id="ownership-h">The intelligence stays attributable from thesis to execution.</h2>
+      <p>Authors choose what becomes public, what stays protected, and what others may license. Every fork keeps its ancestry; every agent remains attached to its owner’s wallet and policy.</p>
+      <button className="btn" onClick={() => go({name:'docs'})}>Read how Scion works <Icon n="doc" s={14}/></button>
+    </div>
+    <div className="ownership-flow" aria-label="Scion ownership flow">
+      <div><span>01</span><Icon n="doc"/><b>Thesis</b><small>Publish the idea and its evidence.</small></div>
+      <div><span>02</span><Icon n="lock"/><b>Protection</b><small>Seal the edge section by section.</small></div>
+      <div><span>03</span><Icon n="key"/><b>Access</b><small>License precise rights to a wallet.</small></div>
+      <div><span>04</span><Icon n="fork"/><b>Lineage</b><small>Fork, adapt, and preserve attribution.</small></div>
+      <div><span>05</span><Icon n="bolt"/><b>Execution</b><small>Run within user-owned limits.</small></div>
+    </div>
+  </section>;
+}
+
 export function StrategyCard({ st }: { st: Strategy }) {
   const s = useStore();
   const { go } = useUi();
@@ -119,6 +138,7 @@ export function Home() {
       </div>
       <FeaturedThesis />
       {how && <How onClose={() => setHow(false)} />}
+      <OwnershipStory />
 
       <div className="repo">
         <div>
