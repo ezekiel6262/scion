@@ -1,28 +1,48 @@
-import { NearConnector, type NearWalletBase } from '@hot-labs/near-connect';
+import { NearConnector, type NearWalletBase, type WalletManifest } from '@hot-labs/near-connect';
 import type { LiveApi } from './live-api';
+import { logoutPrivy } from './privy-auth';
 export type LiveSession = { token:string; accountId:string; expiresAt:string };
 export type WalletAuthMode='connected-wallet'|'embedded';
 export type WalletAuthAdapter={mode:WalletAuthMode;label:string;connect(api:LiveApi):Promise<LiveSession>;restore():Promise<unknown>;disconnect():Promise<void>};
 
 const connector = new NearConnector({ network:'mainnet', features:{signMessage:true,mainnet:true}, footerBranding:{heading:'Connect to Scion',link:'https://scionhub.xyz',linkText:'Scion'} });
 let activeWallet:NearWalletBase|undefined;
+let embeddedRegistered:Promise<void>|undefined;
 
-async function connectExistingWallet(api:LiveApi):Promise<LiveSession>{
+const embeddedManifest = {
+  id:'scion-embedded',name:'Scion email wallet',icon:'https://scionhub.xyz/favicon.svg',description:'A self-custodial NEAR wallet secured by your Scion email login.',website:'https://scionhub.xyz',version:'1.0.0',
+  executor:'https://raw.githubusercontent.com/beneviolabs/privy-near-connect/3d56b782669d242a1ea432921e291abc26b4ebc7/executor.js',type:'sandbox',platform:{web:'https://scionhub.xyz'},
+  features:{signMessage:true,signTransaction:true,signAndSendTransaction:true,signAndSendTransactions:true,signInWithoutAddKey:true,signInAndSignMessage:true,signInWithFunctionCallKey:true,signDelegateActions:false,mainnet:true,testnet:false},
+  permissions:{storage:true,isPrivyConnect:true,allowsOpen:['https://scionhub.xyz']},metadata:{signPageURL:'https://scionhub.xyz/sign',debug:false},
+} as unknown as WalletManifest;
+
+async function authenticateWallet(api:LiveApi,walletId?:string):Promise<LiveSession>{
   const challenge=await api.authChallenge();
-  activeWallet=await connector.connect();
+  activeWallet=await connector.connect(walletId?{walletId}:undefined);
   const accounts=await activeWallet.getAccounts({network:'mainnet'}),account=accounts[0];
   if(!account)throw new Error('The wallet did not return a NEAR account.');
   const signed=await activeWallet.signMessage({message:challenge.message,recipient:challenge.recipient,nonce:Uint8Array.from(atob(challenge.nonce),(c)=>c.charCodeAt(0)),network:'mainnet',signerId:account.accountId});
   return api.authVerify({challengeId:challenge.challengeId,accountId:signed.accountId,publicKey:signed.publicKey,signature:signed.signature});
 }
 
+async function connectExistingWallet(api:LiveApi):Promise<LiveSession>{
+  return authenticateWallet(api);
+}
+
+async function connectEmbeddedWallet(api:LiveApi):Promise<LiveSession>{
+  embeddedRegistered??=connector.registerWallet(embeddedManifest);
+  await embeddedRegistered;
+  return authenticateWallet(api,embeddedManifest.id);
+}
+
 async function restoreExistingWallet(){try{const connected=await connector.getConnectedWallet();activeWallet=connected.wallet;return connected;}catch{return undefined;}}
 async function disconnectExistingWallet(){if(activeWallet)await connector.disconnect(activeWallet);activeWallet=undefined;}
 export const connectedWalletAdapter:WalletAuthAdapter={mode:'connected-wallet',label:'Connect an existing wallet',connect:connectExistingWallet,restore:restoreExistingWallet,disconnect:disconnectExistingWallet};
-export const embeddedWalletStatus=()=>{const domain=import.meta.env.VITE_NEAR_AUTH_DOMAIN,clientId=import.meta.env.VITE_NEAR_AUTH_CLIENT_ID,relayer=import.meta.env.VITE_NEAR_AUTH_RELAYER_URL;return {configured:!!(domain&&clientId&&relayer),domain,clientId,relayer};};
+export const embeddedWalletAdapter:WalletAuthAdapter={mode:'embedded',label:'Continue with email',connect:connectEmbeddedWallet,restore:restoreExistingWallet,disconnect:async()=>{await disconnectExistingWallet();await logoutPrivy();}};
 export async function connectNear(api:LiveApi):Promise<LiveSession>{return connectedWalletAdapter.connect(api);}
+export async function connectEmbeddedNear(api:LiveApi):Promise<LiveSession>{return embeddedWalletAdapter.connect(api);}
 export async function restoreNearWallet(){return connectedWalletAdapter.restore();}
-export async function disconnectNear(){return connectedWalletAdapter.disconnect();}
+export async function disconnectNear(){await connectedWalletAdapter.disconnect();await logoutPrivy();}
 export async function nearWallet(){activeWallet??=(await connector.getConnectedWallet()).wallet;return activeWallet;}
 export function agentAccountId(handle:string,owner:string){const label=handle.toLowerCase().replaceAll('_','-').replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');if(label.length<2)throw new Error('Use at least two letters or numbers in the agent handle.');return `${label}.${owner}`;}
 export async function createAgentAccount(owner:string,handle:string,fundingNear='0.1'){

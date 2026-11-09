@@ -1,5 +1,6 @@
 /* Scion: monochrome app. Black and white, one bold device: redaction.
    Sealed data is drawn as redaction bars; color is reserved for gains and losses. */
+.sign-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:#000}.sign-page>.box{width:min(520px,100%)}.sign-page .box-body{display:grid;gap:14px}.sign-page .btn{width:100%}
 :root {
   color-scheme: light;
   --bg: #FFFFFF;

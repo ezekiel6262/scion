@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LiveApi, type CreateLiveStrategy, type LiveAgent, type LiveAgentPolicy, type LiveAgentProposal, type LiveAuditEvent, type LiveBalances, type LiveComment, type LiveCommerce, type LiveDeviceSession, type LiveExecution, type LiveFeedItem, type LiveHealth, type LiveInviteStatus, type LiveNotification, type LiveProfile, type LivePublicProfile, type LiveStrategy, type LiveStrategyDetail, type LiveSwap } from '../core/live-api';
-import { connectNear, createAgentAccount, disconnectNear, restoreNearWallet, sendUsdcPayment, type LiveSession } from '../core/near-wallet';
+import { connectEmbeddedNear, connectNear, createAgentAccount, disconnectNear, restoreNearWallet, sendUsdcPayment, type LiveSession } from '../core/near-wallet';
 
 type LiveState = {
   status: 'connecting' | 'live' | 'offline';
@@ -17,6 +17,7 @@ type LiveState = {
   publishing: boolean;
   refresh: () => Promise<void>;
   connect: () => Promise<void>;
+  connectEmail: () => Promise<void>;
   disconnect: () => Promise<void>;
   saveProfile: (input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string;inviteCode?:string})=>Promise<LiveProfile>;
   uploadAvatar:(file:File)=>Promise<string>;
@@ -40,7 +41,7 @@ const restoredSession=()=>{try{const value=JSON.parse(localStorage.getItem(SESSI
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => new LiveApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), []);
-  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'disconnect'|'saveProfile'|'uploadAvatar'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'|'swaps'|'recordSwap'|'toggleFollow'|'toggleLike'|'comments'|'addComment'|'createFork'|'markNotificationsRead'|'loadProfile'|'loadSecurity'|'revokeSession'|'blockAccount'|'report'|'loadCommerce'|'loadInvites'|'createInvite'|'createOffer'|'purchaseOffer'|'loadAgents'|'loadAgent'|'createAgent'|'provisionAgentAccount'|'setAgentStatus'|'createAgentProposal'|'decideAgentProposal'|'runAgent'>>({ status: 'connecting', strategies: [], feed:[],notifications:[],session: restoredSession(), publishing: false, balancesLoading:false });
+  const [state, setState] = useState<Omit<LiveState, 'refresh' | 'publish'|'connect'|'connectEmail'|'disconnect'|'saveProfile'|'uploadAvatar'|'refreshBalances'|'loadStrategy'|'updateStrategy'|'recordExecution'|'swaps'|'recordSwap'|'toggleFollow'|'toggleLike'|'comments'|'addComment'|'createFork'|'markNotificationsRead'|'loadProfile'|'loadSecurity'|'revokeSession'|'blockAccount'|'report'|'loadCommerce'|'loadInvites'|'createInvite'|'createOffer'|'purchaseOffer'|'loadAgents'|'loadAgent'|'createAgent'|'provisionAgentAccount'|'setAgentStatus'|'createAgentProposal'|'decideAgentProposal'|'runAgent'>>({ status: 'connecting', strategies: [], feed:[],notifications:[],session: restoredSession(), publishing: false, balancesLoading:false });
   const refresh = useCallback(async () => {
     setState((current) => ({ ...current, status: current.refreshedAt ? current.status : 'connecting' }));
     try {
@@ -61,6 +62,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const refreshBalances=useCallback(async()=>{if(!state.session)return;setState((current)=>({...current,balancesLoading:true}));try{const balances=await api.balances(state.session.token);setState((current)=>({...current,balances,balancesLoading:false}));}catch(error){setState((current)=>({...current,balancesLoading:false,error:error instanceof Error?error.message:'Balance lookup failed'}));throw error;}},[api,state.session]);
   useEffect(()=>{if(state.session)void refreshBalances();},[state.session?.token]);
   const connect=useCallback(async()=>{const session=await connectNear(api);localStorage.setItem(SESSION,JSON.stringify(session));const me=await api.me(session.token);setState((current)=>({...current,session,profile:me.profile}));},[api]);
+  const connectEmail=useCallback(async()=>{const session=await connectEmbeddedNear(api);localStorage.setItem(SESSION,JSON.stringify(session));const me=await api.me(session.token);setState((current)=>({...current,session,profile:me.profile}));},[api]);
   const disconnect=useCallback(async()=>{await disconnectNear();localStorage.removeItem(SESSION);setState((current)=>({...current,session:undefined,profile:undefined,balances:undefined}));},[]);
   const saveProfile=useCallback(async(input:Pick<LiveProfile,'displayName'|'handle'|'bio'> & {avatarUrl?:string;inviteCode?:string})=>{if(!state.session)throw new Error('Connect a NEAR wallet first.');const profile=await api.saveProfile(state.session.token,input);setState((current)=>({...current,profile}));return profile;},[api,state.session]);
   const uploadAvatar=useCallback(async(file:File)=>{if(!state.session)throw new Error('Connect a NEAR wallet first.');const prepared=await prepareAvatar(file);const value=await api.uploadAvatar(state.session.token,prepared);return value.avatarUrl;},[api,state.session]);
@@ -105,7 +107,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const createAgentProposal=useCallback((id:string,input:{action:'watch'|'trade';thesis:string;rationale:string;asset?:string;side?:'buy'|'sell';notionalMinor?:number;confidence:number})=>api.createAgentProposal(requireSession().token,id,input),[api,state.session]);
   const decideAgentProposal=useCallback((id:string,decision:'approve'|'reject')=>api.decideAgentProposal(requireSession().token,id,decision),[api,state.session]);
   const runAgent=useCallback((id:string)=>api.runAgent(requireSession().token,id),[api,state.session]);
-  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, disconnect, saveProfile,uploadAvatar, refreshBalances, loadStrategy, updateStrategy, recordExecution,swaps,recordSwap,toggleFollow,toggleLike,comments,addComment,createFork,markNotificationsRead,loadProfile,loadSecurity,revokeSession,blockAccount,report,loadCommerce,loadInvites,createInvite,createOffer,purchaseOffer,loadAgents,loadAgent,createAgent,provisionAgentAccount,setAgentStatus,createAgentProposal,decideAgentProposal,runAgent }}>{children}</LiveCtx.Provider>;
+  return <LiveCtx.Provider value={{ ...state, refresh, publish, connect, connectEmail, disconnect, saveProfile,uploadAvatar, refreshBalances, loadStrategy, updateStrategy, recordExecution,swaps,recordSwap,toggleFollow,toggleLike,comments,addComment,createFork,markNotificationsRead,loadProfile,loadSecurity,revokeSession,blockAccount,report,loadCommerce,loadInvites,createInvite,createOffer,purchaseOffer,loadAgents,loadAgent,createAgent,provisionAgentAccount,setAgentStatus,createAgentProposal,decideAgentProposal,runAgent }}>{children}</LiveCtx.Provider>;
 }
 
 async function prepareAvatar(file:File){if(!file.type.startsWith('image/'))throw new Error('Choose an image file.');if(file.size>8_000_000)throw new Error('Choose an image smaller than 8 MB.');const bitmap=await createImageBitmap(file),size=512,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable.');const side=Math.min(bitmap.width,bitmap.height),sx=(bitmap.width-side)/2,sy=(bitmap.height-side)/2;context.drawImage(bitmap,sx,sy,side,side,0,0,size,size);bitmap.close();const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('Could not process image.')),'image/webp',.82));if(blob.size>600000)throw new Error('Processed profile picture is too large.');const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.subarray(offset,offset+0x8000));return {contentType:'image/webp',data:btoa(binary)};}

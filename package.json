@@ -20,10 +20,16 @@
   "dependencies": {
     "@fastnear/intents": "^2.5.0",
     "@hot-labs/near-connect": "^0.12.0",
+    "@noble/curves": "^1.9.1",
+    "@peerfolio/privy-near-connect": "^0.0.8",
+    "@privy-io/js-sdk-core": "^0.79.4",
     "buffer": "^6.0.3",
+    "jose": "^4.15.9",
+    "libphonenumber-js": "^1.12.10",
     "pg": "8.23.1",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
