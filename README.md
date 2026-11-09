@@ -66,6 +66,12 @@ Scion is one project entered into several applicable tracks:
 
 We do not claim NFT, Swarms, or Memecoin Mechanics features that are only demos or future milestones.
 
+## Other hackathon project
+
+The same solo builder is also submitting **Totem — Culture Engine** as a separate, independent project. Totem explores cultural identity and community formation; it does not share Scion's private-strategy protocol, trading execution, data, or judging evidence.
+
+[Totem live site](https://mytotem.buzz) · [Totem repository](https://github.com/ezekiel6262/totem-culture-engine)
+
 ## Architecture
 
 ```mermaid

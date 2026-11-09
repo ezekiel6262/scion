@@ -15,6 +15,8 @@
 - [ ] No seed phrase, key, secret, or database credential exists in Git history.
 - [ ] Run every command in `docs/JUDGING.md` on the final commit.
 - [ ] Keep the hosted demo available through 18 November 2026, ideally through 25 November 2026.
+- [x] Scion's README names and links the builder's other independent entry, **Totem — Culture Engine**.
+- [ ] Totem's README reciprocally names and links Scion before either project is submitted.
 
 Recommended primary tracks: **Unstoppable DeFi, Investment Thesis, AI Security & Defense, Autonomous Business, and Open Innovation**. Additional honest fit: Agent Economy (foundation live, attributable earnings pending) and Privacy & Private AI (sealed protocol, no TEE claim). For Autonomous Business, disclose that verified sales, revenue sharing, agent accounts, constraints, and ledger foundations are implemented while the fully autonomous sale-to-payout loop remains pending. Open Innovation is the cross-cutting protocol claim: private strategy IP, public proof, programmable access, fork attribution, and bounded agent ownership in one system.
 
@@ -33,4 +35,4 @@ One person may enter up to **two different projects** when both conditions are m
 1. the projects are genuinely independent; and
 2. each project's README names and links to the other project.
 
-Keep separate repositories, demo posts, descriptions, and evidence for Scion and the second project. Do not split one product into two submissions merely to multiply track entries. Before submitting, add a short `Other hackathon project` section to both READMEs with the exact project name and public repository URL.
+The second project is **Totem — Culture Engine** ([website](https://mytotem.buzz), [repository](https://github.com/ezekiel6262/totem-culture-engine)). Keep separate repositories, demo posts, descriptions, and evidence for Scion and Totem. They are independent products, not one product split into two submissions. Before submitting either project, confirm both READMEs contain reciprocal `Other hackathon project` sections with the exact project names and public repository URLs.
