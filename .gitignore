@@ -5,4 +5,11 @@ dist-single
 backend/.build
 infra/.aws-sam
 .sam-tmp
+.sam-release
+build.toml
 migration-output.json
+demo-video/voices/
+demo-video/*.wav
+demo-video/*.mp3
+demo-video/*.vtt
+demo-video/frames/

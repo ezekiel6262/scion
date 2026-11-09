@@ -4,6 +4,7 @@ import { WalletAuthService } from '../src/auth.ts';
 import { createHandler } from '../src/http.ts';
 import { createAuthStore, createRepository } from '../src/runtime.ts';
 import { ScionService } from '../src/service.ts';
+import { AwsKmsAgentExecutor, DisabledAgentExecutor } from '../src/agent-execution.ts';
 
 let appPromise: ReturnType<typeof initialize> | undefined;
 async function initialize() {
@@ -13,7 +14,8 @@ async function initialize() {
   const paymentsEnabled=!!(contract&&treasury);
   const settlement=paymentsEnabled?new VerifiedUsdcSettlementAdapter(secret,contract!,treasury!):undefined;
   const admins=(process.env.SCION_ADMIN_ACCOUNTS??'').split(',').map(v=>v.trim()).filter(Boolean);
-  const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret,undefined,settlement,true,paymentsEnabled,paymentsEnabled?{contractId:contract!,treasury:treasury!}:undefined,admins);
+  const agentExecutor=process.env.SCION_AGENT_KMS_KEY_ID&&contract?new AwsKmsAgentExecutor(process.env.SCION_AGENT_KMS_KEY_ID,contract):new DisabledAgentExecutor();
+  const service = new ScionService(await createRepository(), new SimulatedNearIntentsAdapter(), secret,undefined,settlement,true,paymentsEnabled,paymentsEnabled?{contractId:contract!,treasury:treasury!}:undefined,admins,agentExecutor);
   await service.seed();
   return createHandler(service, new WalletAuthService(await createAuthStore(), secret),secret);
 }

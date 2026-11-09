@@ -14,9 +14,9 @@ Open Home or Explore. Show return, drawdown, risk, co-signers, and lineage; **De
 
 Open Trade and search a NEAR token by name, symbol, or contract. The client requests a NEAR Intents / 1Click quote. The user reviews and signs; Scion never receives the wallet key. Stop before approval if no wallet is connected.
 
-## 2:05 — User-owned agent
+## 2:05 — User-owned autonomous agent
 
-Open Agents. Show owner, mode, allowed assets, trade/daily limits, slippage/leverage, pause, and revoke. Dedicated agent-account provisioning is real; autonomous execution is safety-paused until authority is verified.
+Open Agents. Create or inspect a bounded agent. Show owner, allowed assets, per-trade/daily limits, slippage, dedicated NEAR account, and **KMS execution ready** state. Explain the dual-key setup: the owner keeps recovery control while the unique agent key stays encrypted by AWS KMS. Run an AI cycle or show a settled receipt. The model proposes; deterministic policy decides; 1Click executes only inside the funded limits. Pause stops signing; revoke removes the execution key.
 
 ## 2:50 — Reproducible thesis
 
@@ -30,6 +30,6 @@ The command reads sourced inputs; `THESIS.md` states counterevidence and falsifi
 
 ## 3:25 — Security boundary
 
-Open Security log. Private sections use independent keys; access is scoped, expiring, revocable, and holder-bound. Demo activity cannot execute. Paid access requires verified settlement.
+Open Security log. Production strategy payloads are AES-256-GCM encrypted at rest. Access is scoped, expiring, revocable, and wallet-bound. Fine-grained section re-sealing remains visibly identified as the protocol sandbox. Demo activity cannot execute. Paid access requires verified settlement.
 
 Close: **Scion is a non-custodial market for strategies and user-owned trading agents, where privacy, proof, and attribution survive the fork.**

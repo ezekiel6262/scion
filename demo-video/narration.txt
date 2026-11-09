@@ -1,0 +1,19 @@
+Trading intelligence has a trust problem. Public calls reveal the edge before the trade, private groups ask followers to trust screenshots, and copy-trading platforms often hide custody, attribution, and risk. Scion turns a thesis, strategy, or trade into a permissioned object with public proof and permanent lineage.
+
+This is the live Scion product built for the NEAR Hackathon. The homepage explains the model: publish an idea publicly or seal the valuable parts; sell only the access someone needs; let another user fork it under their own limits; and preserve the original author in every descendant.
+
+Inside the network, strategies show return, drawdown, risk, backing, and fork history. Seeded activity is deliberately marked Demo, so judges can see a busy product without confusing illustrative history with verified live performance. Real users add profiles, strategies, social activity, and receipts to the same network.
+
+Plays are timestamped trading calls. A public play exposes its entry, target, stop, crowd stance, and outcome. A sealed play can reveal later or give scoped early access. The purpose is accountability: the author cannot quietly rewrite a losing call after the market moves, and followers can evaluate a record instead of a personality.
+
+The Trade page discovers the live NEAR token universe from NEAR Intents and 1Click. Users can search by symbol, name, or contract address, including long-tail tokens and memecoins. Scion requests a real quote, shows the route and minimum output, and asks the connected wallet to approve the exact transfer. Scion does not custody the user’s wallet. After settlement, the backend independently verifies and records the receipt.
+
+Scion also supports user-owned trading agents. An owner chooses research-only, proposal, or bounded autonomous mode, then defines allowed assets, maximum trade size, daily spending, allocation, leverage, and slippage. A bounded agent starts paused. Provisioning creates a dedicated NEAR subaccount with two keys: the owner keeps recovery control, while the agent gets a unique secp-two-five-six-k-one execution key encrypted by AWS KMS.
+
+The model never sees that key. It receives market data and returns a schema-bound research or trade proposal. A separate deterministic policy engine checks the proposal and rolling daily spend before the isolated signer can decrypt anything. If the policy passes, Scion requests a fresh 1Click quote, sends the deposit from the agent’s funded subaccount, waits for terminal settlement, and publishes an attributable receipt. The owner can pause immediately or revoke the agent, which disables scheduling and attempts finalized on-chain removal of the execution key.
+
+Private production strategy payloads are encrypted with AES-two-five-six GCM before PostgreSQL persistence. Signed capabilities bind a buyer, resource, scope, expiry, and revocation state. Verified checkout can split USDC between the creator, upstream author, and protocol, so attribution is economic rather than decorative. The finer per-section re-encryption, delayed-play scenarios, and historical network remain visibly identified as the protocol sandbox.
+
+NEAR is not a logo added at the end. NEAR accounts provide portable identity and recoverable agent subaccounts. NEP-four-thirteen proves wallet ownership. NEAR Intents supplies solver-based execution across assets without giving Scion custody. Finalized NEAR transactions provide the receipts Scion uses for access, performance, and lineage.
+
+The result is a new market for trading intelligence: private when it needs to be, public where proof matters, forkable without erasing authorship, and executable by people or tightly bounded agents. Explore the live product at scionhub dot x-y-z, inspect the public repository, and tell us which strategy or agent primitive you would build on next.

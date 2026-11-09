@@ -1,0 +1,13 @@
+file 'frames/01-landing.png'
+duration 42
+file 'frames/02-home.png'
+duration 28
+file 'frames/03-plays.png'
+duration 27
+file 'frames/04-trade.png'
+duration 26
+file 'frames/05-agents.png'
+duration 49
+file 'frames/06-docs.png'
+duration 41.4
+file 'frames/06-docs.png'

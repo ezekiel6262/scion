@@ -9,9 +9,9 @@ Start here when evaluating Scion from the repository. Each claim names inspectab
 | 1 | Users authenticate with a NEAR wallet, not a demo persona. | Live | `src/core/near-wallet.ts`, `backend/src/nep413-auth.ts`, `backend/test/auth.test.ts` | `npm run test:backend`; connect from `/app`. |
 | 2 | Scion discovers NEAR tokens and requests 1Click quotes without custody. | Live | `src/ui/LiveSwap.tsx`, `src/core/intents.ts`, `backend/src/near-balances.ts` | Open Trade and search a symbol or contract. A swap requires wallet approval. |
 | 3 | Paid access follows independently verified NEAR settlement. | Live backend | `backend/src/near-transactions.ts`, `backend/src/service.ts`, `backend/test/near-transactions.test.ts` | Backend tests cover finality, signer, contract, recipients, amount, and replay. |
-| 4 | Private access is cryptographic, not just hidden UI. | Protocol sandbox | `src/core/crypto.ts`, `src/core/engine.ts`, `src/core/policy.ts`, `tests/protocol.test.ts` | `npm test` covers encryption, re-sealing, expiry, revocation, and denial. |
-| 5 | Forks preserve lineage and upstream economics. | Sandbox + persisted model | `src/core/engine.ts`, `backend/src/domain.ts`, `backend/db/schema.ts` | `npm test`; inspect lineage and settlement records. |
-| 6 | Agents are user-owned and policy-bounded. | Live control plane; execution paused | `src/ui/LiveAgents.tsx`, `backend/src/service.ts`, `backend/aws/agent-runner.ts` | Create an agent; inspect limits, pause, and revoke. Runner has no DB/wallet access. |
+| 4 | Private access is cryptographic, not just hidden UI. | Live storage/capability plane + per-section sandbox | `backend/src/content-crypto.ts`, `backend/src/service.ts`, `src/core/crypto.ts`, `tests/protocol.test.ts` | New production strategy payloads are AES-256-GCM encrypted at rest; signed capabilities enforce subject, resource, scope, expiry and revocation. |
+| 5 | Forks preserve lineage and upstream economics. | Live persisted model and verified checkout splits | `backend/src/service.ts`, `backend/src/domain.ts`, `backend/db/schema.ts` | Backend tests verify immutable parent edges, idempotent purchase, creator revenue, upstream royalty and protocol splits. |
+| 6 | Agents are user-owned, policy-bounded, and capable of autonomous execution. | Live, opt-in and funded by owner | `backend/src/agent-execution.ts`, `backend/src/service.ts`, `backend/aws/agent-runner.ts`, `src/ui/LiveAgents.tsx` | A bounded agent starts paused. Provisioning adds owner recovery plus a unique KMS-encrypted key. The model proposes; deterministic policy authorizes; 1Click settles; pause/revoke stops future signing. |
 | 7 | The flagship thesis is sourced and reproducible. | Reproducible snapshot | `THESIS.md`, `data/`, `src/core/thesisModel.ts`, `scripts/rerun-model.ts` | `npm run model`; vary an input. |
 | 8 | Production isolates data and exposes observable services. | Deployed | `infra/template.yaml`, `infra/README.md`, `backend/openapi.yaml` | Visit `/api/v1/health`; inspect networking, alarms, backups, deletion protection. |
 
@@ -19,7 +19,7 @@ Start here when evaluating Scion from the repository. Each claim names inspectab
 
 - Seed activity is tagged **Demo**, carries `demo: true`, and is excluded from verified live performance.
 - Live product and deterministic protocol sandbox are separate execution paths.
-- Autonomous agent execution is **not active**. Accounts and policies are the shipped foundation.
+- Autonomous execution is opt-in only for funded bounded agents with verified dual-key NEAR accounts. Demo agents cannot activate or trade.
 - No TEE or NEAR AI Cloud attestation is claimed.
 - NFT-shaped demo records are not claimed as live on-chain minting.
 - AWS hosts the system; NEAR provides wallet identity, authorization, settlement, and Intents.
@@ -38,17 +38,17 @@ Known gap: all 1Click terminal states, including failed/refunded deposits, shoul
 
 ### AI Security & Defense
 
-Agent policy covers allowed assets, per-trade/daily caps, allocation, slippage, and leverage. Proposal mode requires owner action. Bounded execution starts paused. The isolated runner lacks wallet/DB access; its output is revalidated. Owners can pause or revoke.
+The autonomous signing boundary enforces exact allowed token identities, per-trade/daily caps and slippage. Allocation and leverage fields remain useful for proposal/portfolio policy, but spot autonomous swaps do not falsely claim portfolio-wide allocation accounting. Proposal mode still requires owner action. Bounded mode starts paused. A unique secp256k1 key is generated in the API process, immediately encrypted by AWS KMS, stored only as ciphertext, and decrypted only inside the isolated signer. The model receives market data and emits a schema-bound proposal but never sees the key. The API revalidates policy and rolling daily spend before a 1Click transfer. Owners retain a recovery key and can pause or revoke; revocation also attempts finalized on-chain removal of the agent key.
 
 ### Autonomous Business
 
 Scion treats a strategy or user-owned agent as a constrained revenue-generating entity. `backend/src/service.ts` implements verified checkout, creator payment, protocol fee, and upstream royalty accounting; `backend/src/near-transactions.ts` verifies settlement; `backend/aws/agent-runner.ts` provides isolated research execution; and `src/ui/LiveAgents.tsx` exposes the owner's operating constraints and kill controls. Dedicated NEAR agent-account provisioning provides attributable identity.
 
-Known gap: the official reference prompt asks for a complete autonomous sale-to-cost-to-payout loop. Scion's components and ledger model exist, but the fully autonomous loop and automatic attributable agent payout are not yet claimed as shipped.
+The autonomous research-to-policy-to-1Click-execution-to-receipt loop is shipped. Verified strategy sales and upstream royalty splits are also shipped. Automatic routing of marketplace earnings directly into an agent subaccount remains disclosed rather than claimed.
 
 ### Agent Economy
 
-Dedicated NEAR subaccount provisioning and user-owned agent identity are live. Automatic attributable earnings and autonomous spending remain future work.
+Dedicated NEAR subaccounts, owner recovery, unique encrypted agent keys, scheduled research, bounded autonomous spending and attributable settlement receipts are live. Automatic marketplace-earnings routing to an agent subaccount remains future work.
 
 ### Open Innovation
 

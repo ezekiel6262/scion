@@ -36,10 +36,9 @@ For a deterministic four-minute walkthrough, use [docs/DEMO.md](docs/DEMO.md).
 
 | Status | Capability |
 |---|---|
-| **Live** | NEP-413 wallet authentication, profiles, PostgreSQL persistence, live NEAR balances, token discovery, 1Click quotes, wallet-approved swap submission, strategies, social activity, checkout verification, agent policies, pause/revoke controls, and dedicated NEAR agent-account provisioning. |
-| **Protocol sandbox** | Per-section AES-256-GCM encryption, wallet-bound capabilities, expiry/revocation, risk clipping, fork lineage, royalty routing, receipt chains, performance attestations, sealed plays, and the populated guided network. Simulated elements are labeled. |
-| **Safety-paused** | Autonomous agent execution allowance. Accounts and policies exist, but execution cannot activate until dedicated authority is verified. |
-| **Planned—not claimed as shipped** | TEE/private inference, automatic attributable agent payouts, on-chain NFT minting, and fully autonomous background execution. |
+| **Live** | NEP-413 and email-wallet authentication, profiles, PostgreSQL persistence, AES-256-GCM encrypted strategy payloads, scoped/expiring/revocable capabilities, live NEAR balances, token discovery, 1Click quotes and settlement, verified checkout splits, fork lineage, agent policies, dedicated dual-key NEAR agent accounts, scheduled AI cycles, KMS-isolated signing, bounded autonomous swaps, receipts, pause, and on-chain key revocation. |
+| **Protocol sandbox** | Fine-grained per-section re-encryption, delayed sealed plays, follower portfolio simulation, receipt-chain visualizations, performance scenarios, and the populated guided network. Simulated records are labeled **Demo** and excluded from verified live results. |
+| **Planned—not claimed as shipped** | TEE/private model inference, audited smart-contract enforcement, automatic agent marketplace earnings routed to subaccounts, and on-chain NFT/trophy minting. |
 
 Exact claim-to-code evidence is in [docs/JUDGING.md](docs/JUDGING.md).
 
@@ -58,9 +57,9 @@ Scion is one project entered into several applicable tracks:
 
 1. **Unstoppable DeFi — primary.** Live token discovery, NEAR Intents quotes, user-approved swaps, follower risk limits, and non-custodial execution.
 2. **Investment Thesis — primary.** A sourced NEAR Intents thesis, committed data, transparent formulas, sensitivity inputs, and a one-command rerun. Read [THESIS.md](THESIS.md).
-3. **AI Security & Defense — primary.** Per-agent allowlists and caps, owner approval, paused-by-default execution, and revoke controls.
-4. **Autonomous Business — strong emerging fit.** A strategy or user-owned agent can sell scoped access, receive verified revenue, share royalties through its lineage, and operate under owner-set constraints. Agent identities, dedicated NEAR subaccounts, checkout verification, revenue splits, policy controls, and the isolated research runner are implemented; a fully autonomous sale-to-payout loop is still pending.
-5. **Agent Economy — emerging.** User-owned agents and dedicated NEAR subaccounts are live. Automatic attributable earnings and autonomous spending are pending.
+3. **AI Security & Defense — primary.** The model never receives a wallet key. Each bounded agent uses a unique KMS-encrypted key on a recoverable NEAR subaccount; deterministic token-identity allowlists, per-trade/daily caps and slippage limits run before signing, with pause and on-chain revocation controls.
+4. **Autonomous Business — primary.** A strategy or user-owned agent can sell scoped access, receive verified revenue, share royalties through its lineage, research markets on a schedule, and execute funded NEAR Intents swaps under owner-set constraints. Automatic agent marketplace earnings routing remains a disclosed next step.
+5. **Agent Economy — strong fit.** User-owned agents have dedicated NEAR identities, attributable receipts, isolated keys, scheduled research, and bounded autonomous spending. Owners retain a recovery key and can pause or revoke execution.
 6. **Privacy & Private AI — conceptual fit.** Field-level sealing and scoped disclosure are implemented in the sandbox. Scion does **not** claim NEAR AI Cloud TEE inference or attestation.
 7. **Open Innovation — strong cross-cutting fit.** Scion combines private intellectual-property markets, public performance proof, programmable access, persistent fork attribution, non-custodial execution, and bounded agent ownership into a protocol that does not fit a conventional trading or social category alone.
 

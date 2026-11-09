@@ -104,3 +104,18 @@ test('paid access is idempotent and splits fork royalties', async () => {
   const scoped:any=await service.readVersion('carol.near',fork.strategy.latestVersionId,first.token);
   assert.equal(scoped.thesis.summary.length>0,true);
 });
+
+test('bounded agents isolate keys, enforce daily limits, and persist live receipts',async()=>{
+  const repo=new MemoryRepository(),now=()=>new Date('2026-11-09T12:00:00Z'),executor={
+    async prepare(agentId:string){return {publicKey:'secp256k1:agent-public-key',envelope:`kms:${agentId}:ciphertext`,keyId:'kms-test',preparedAt:now().toISOString()};},
+    async execute(){return {txHash:'agent-live-tx',depositAddress:'solver.near',originAsset:'nep141:usdc.near',destinationAsset:'nep141:wrap.near',amountIn:'1000000',amountOut:'200000000000000000000000',status:'SUCCESS' as const,settledAt:now().toISOString()};}
+  },service=new ScionService(repo,new SimulatedNearIntentsAdapter(),'test-secret',now,undefined,false,true,undefined,[],executor);
+  await service.saveProfile('owner.near',{displayName:'Owner',handle:'owner',bio:''});
+  const created:any=await service.createAgent('owner.near',{name:'Bounded buyer',handle:'bounded-buyer',mode:'bounded',visibility:'public',policy:{allowedAssets:['NEAR'],maxTradeMinor:1_000_000,dailyLimitMinor:1_000_000,maxAllocationBps:1000,maxSlippageBps:100,maxLeverageBps:10000}}),authority=await service.prepareAgentAuthority('owner.near',created.id),stored=(await repo.getProductObject(created.id))!;
+  assert.equal(authority.publicKey,'secp256k1:agent-public-key');assert.equal((await service.agentDetail(created.id)).authority,undefined);
+  stored.payload={...stored.payload,executionAccount:'bounded-buyer.owner.near',earningsAccount:'bounded-buyer.owner.near',accountStatus:'active',automationReady:true};await repo.putProductObject(stored);await service.setAgentStatus('owner.near',created.id,'active');
+  const proposal:any=await service.createAutomatedAgentProposal(created.id,{action:'trade',thesis:'Buy only after the verified signal and remain inside the one USDC daily policy.','rationale':'The current market snapshot meets the owner-defined entry rule.',asset:'NEAR',side:'buy',notionalMinor:1_000_000,confidence:70},{id:'run1',model:'test',inputTokens:1,outputTokens:1,latencyMs:1});
+  assert.equal(proposal.executionState,'queued');const settled:any=await service.executeAutomatedAgentProposal(created.id,proposal.id);assert.equal(settled.executionState,'settled');assert.equal(settled.executionReceiptId,'agent-live-tx');
+  const second:any=await service.createAutomatedAgentProposal(created.id,{action:'trade',thesis:'A second valid signal still cannot bypass the owner daily spending ceiling.','rationale':'Policy accounting must reject cumulative spending above the daily limit.',asset:'NEAR',side:'buy',notionalMinor:1,confidence:70},{id:'run2',model:'test',inputTokens:1,outputTokens:1,latencyMs:1});
+  await assert.rejects(()=>service.executeAutomatedAgentProposal(created.id,second.id),/daily limit/i);
+});

@@ -45,11 +45,12 @@ export async function restoreNearWallet(){return connectedWalletAdapter.restore(
 export async function disconnectNear(){await connectedWalletAdapter.disconnect();await logoutPrivy();}
 export async function nearWallet(){activeWallet??=(await connector.getConnectedWallet()).wallet;return activeWallet;}
 export function agentAccountId(handle:string,owner:string){const label=handle.toLowerCase().replaceAll('_','-').replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');if(label.length<2)throw new Error('Use at least two letters or numbers in the agent handle.');return `${label}.${owner}`;}
-export async function createAgentAccount(owner:string,handle:string,fundingNear='0.1'){
+export async function createAgentAccount(owner:string,handle:string,fundingNear='0.1',executionPublicKey?:string){
   const wallet=await nearWallet(),accounts=await wallet.getAccounts({network:'mainnet'}),account=accounts.find(value=>value.accountId===owner),accountId=agentAccountId(handle,owner);
   if(!account?.publicKey)throw new Error('Reconnect the owner wallet so Scion can read its public key.');
   const amount=BigInt(Math.round(Number(fundingNear)*1_000_000))*1_000_000_000_000_000_000n;
-  const outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:owner,receiverId:accountId,actions:[{type:'CreateAccount'},{type:'Transfer',params:{deposit:String(amount)}},{type:'AddKey',params:{publicKey:account.publicKey,accessKey:{permission:'FullAccess'}}}]});
+  const keys=[account.publicKey,...(executionPublicKey&&executionPublicKey!==account.publicKey?[executionPublicKey]:[])];
+  const outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:owner,receiverId:accountId,actions:[{type:'CreateAccount'},{type:'Transfer',params:{deposit:String(amount)}},...keys.map(publicKey=>({type:'AddKey' as const,params:{publicKey,accessKey:{permission:'FullAccess' as const}}}))]});
   return {accountId,txHash:outcome.transaction.hash};
 }
 export async function sendUsdcPayment(accountId:string,contractId:string,transfers:{receiverId:string;amountMinor:number;kind:string}[]){

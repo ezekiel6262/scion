@@ -1,13 +1,15 @@
 import type { AccessOffer, AccessPurchase, Capability, ExecutionReceipt, ForkEdge, LedgerEntry, ProductObject, Profile, Strategy, StrategyVersion } from './domain.ts';
 import type { Repository } from './repository.ts';
 import type { AuthChallenge, AuthStore } from './auth.ts';
+import { StrategyContentCipher } from './content-crypto.ts';
 
 export interface QueryClient extends Queryable { release(): void }
 export interface Queryable { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; connect?():Promise<QueryClient> }
 
 export class PostgresRepository implements Repository {
-  constructor(privateDb: Queryable) { this.db = privateDb; }
+  constructor(privateDb: Queryable,encryptionSecret?:string) { this.db = privateDb;this.cipher=encryptionSecret?new StrategyContentCipher(encryptionSecret):undefined; }
   private db: Queryable;
+  private cipher?:StrategyContentCipher;
 
   async putStrategy(v: Strategy) {
     await this.db.query(`INSERT INTO scion_private.strategies (id,slug,name,owner_account,latest_version_id,visibility,royalty_bps)
@@ -17,10 +19,10 @@ export class PostgresRepository implements Repository {
   async listStrategies() { const r=await this.db.query('SELECT * FROM scion_private.strategies ORDER BY created_at DESC'); return r.rows.map(toStrategy); }
   async putVersion(v: StrategyVersion) {
     await this.db.query(`INSERT INTO scion_private.strategy_versions (id,strategy_id,semver,owner_account,parent_version_id,payload,manifest_hash,created_at)
-      VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8) ON CONFLICT (id) DO NOTHING`,[v.id,v.strategyId,v.semver,v.owner,v.parentVersionId??null,JSON.stringify(v),v.manifestHash,v.createdAt]);
+      VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8) ON CONFLICT (id) DO NOTHING`,[v.id,v.strategyId,v.semver,v.owner,v.parentVersionId??null,JSON.stringify(this.cipher?this.cipher.seal(v):v),v.manifestHash,v.createdAt]);
   }
-  async getVersion(id: string) { const r=await this.db.query('SELECT payload FROM scion_private.strategy_versions WHERE id=$1',[id]); return r.rows[0]?.payload as StrategyVersion|undefined; }
-  async listVersions(strategyId:string){const r=await this.db.query('SELECT payload FROM scion_private.strategy_versions WHERE strategy_id=$1 ORDER BY created_at DESC',[strategyId]);return r.rows.map(v=>v.payload as StrategyVersion);}
+  async getVersion(id: string) { const r=await this.db.query('SELECT id,payload FROM scion_private.strategy_versions WHERE id=$1',[id]); return r.rows[0]?(this.cipher?this.cipher.open(r.rows[0].payload,r.rows[0].id):r.rows[0].payload as StrategyVersion):undefined; }
+  async listVersions(strategyId:string){const r=await this.db.query('SELECT id,payload FROM scion_private.strategy_versions WHERE strategy_id=$1 ORDER BY created_at DESC',[strategyId]);return r.rows.map(v=>this.cipher?this.cipher.open(v.payload,v.id):v.payload as StrategyVersion);}
   async putCapability(v: Capability) {
     await this.db.query(`INSERT INTO scion_private.capabilities (id,subject_account,issuer_account,version_id,scopes,expires_at,status,token_hash,price_minor,currency,created_at,revoked_at)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status,revoked_at=EXCLUDED.revoked_at`,[v.id,v.subject,v.issuer,v.versionId,v.scopes,v.expiresAt,v.status,v.tokenHash,v.priceMinor,v.currency,v.createdAt,v.revokedAt??null]);

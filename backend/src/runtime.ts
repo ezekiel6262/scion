@@ -15,7 +15,7 @@ export async function createRepository(): Promise<Repository> {
   const url=databaseUrl();
   if(!url) return new MemoryRepository();
   const { PostgresRepository }=await import('./postgres-repository.ts');
-  return new PostgresRepository(getPool(url));
+  return new PostgresRepository(getPool(url),process.env.SCION_DATA_ENCRYPTION_SECRET);
 }
 
 export async function createAuthStore():Promise<AuthStore>{const url=databaseUrl();if(!url)return new MemoryAuthStore();const {PostgresAuthStore}=await import('./postgres-repository.ts');return new PostgresAuthStore(getPool(url));}

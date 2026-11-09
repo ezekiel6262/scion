@@ -18,7 +18,7 @@
 - [x] Scion's README names and links the builder's other independent entry, **Totem — Culture Engine**.
 - [ ] Totem's README reciprocally names and links Scion before either project is submitted.
 
-Recommended primary tracks: **Unstoppable DeFi, Investment Thesis, AI Security & Defense, Autonomous Business, and Open Innovation**. Additional honest fit: Agent Economy (foundation live, attributable earnings pending) and Privacy & Private AI (sealed protocol, no TEE claim). For Autonomous Business, disclose that verified sales, revenue sharing, agent accounts, constraints, and ledger foundations are implemented while the fully autonomous sale-to-payout loop remains pending. Open Innovation is the cross-cutting protocol claim: private strategy IP, public proof, programmable access, fork attribution, and bounded agent ownership in one system.
+Recommended tracks: **Unstoppable DeFi, Investment Thesis, AI Security & Defense, Autonomous Business, Agent Economy, and Open Innovation**. Additional honest fit: Privacy & Private AI (live encrypted storage and scoped capabilities plus a finer per-section sandbox; no TEE claim). For Autonomous Business and Agent Economy, point to the shipped research-to-policy-to-KMS-signer-to-1Click-receipt loop, dedicated recoverable NEAR agent accounts, verified strategy sales and royalty splits. Disclose the remaining gap precisely: marketplace earnings are not yet routed automatically into agent subaccounts. Open Innovation is the cross-cutting protocol claim: private strategy IP, public proof, programmable access, fork attribution, and bounded agent ownership in one system.
 
 ## X post draft
 
