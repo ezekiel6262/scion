@@ -182,7 +182,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../backend
-      Handler: aws/handler.handler
+      Handler: handler.handler
       Policies:
         - AWSLambdaVPCAccessExecutionRole
       VpcConfig:
@@ -214,7 +214,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../backend
-      Handler: aws/migrate.handler
+      Handler: migrate.handler
       Timeout: 120
       Policies:
         - AWSLambdaVPCAccessExecutionRole
@@ -234,12 +234,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../backend
-      Handler: aws/auth-handler.handler
+      Handler: auth-handler.handler
       Environment:
         Variables:
-          SCION_AUTH_RECIPIENT: d30lp8j3k8uetx.cloudfront.net
+          SCION_AUTH_RECIPIENT: scionhub.xyz
           AVATAR_BUCKET: !Ref FrontendBucket
-          SCION_SITE_URL: https://d30lp8j3k8uetx.cloudfront.net
+          SCION_SITE_URL: https://scionhub.xyz
       Policies:
         - S3WritePolicy:
             BucketName: !Ref FrontendBucket
@@ -293,11 +293,11 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../backend
-      Handler: aws/agent-runner.handler
+      Handler: agent-runner.handler
       Timeout: 90
       Environment:
         Variables:
-          SCION_SITE_URL: https://d30lp8j3k8uetx.cloudfront.net
+          SCION_SITE_URL: https://scionhub.xyz
           SCION_AGENT_MODEL_ID: !Ref AgentModelId
       Policies:
         - Statement:
