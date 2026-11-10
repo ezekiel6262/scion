@@ -44,6 +44,13 @@ export async function connectEmbeddedNear(api:LiveApi):Promise<LiveSession>{retu
 export async function restoreNearWallet(){return connectedWalletAdapter.restore();}
 export async function disconnectNear(){await connectedWalletAdapter.disconnect();await logoutPrivy();}
 export async function nearWallet(){activeWallet??=(await connector.getConnectedWallet()).wallet;return activeWallet;}
+export async function ensureTokenRegistration(accountId:string,contractId:string){
+  const registered=await viewContract(contractId,'storage_balance_of',{account_id:accountId});
+  if(registered)return undefined;
+  const bounds=await viewContract(contractId,'storage_balance_bounds',{}),minimum=String(bounds?.min??'1250000000000000000000'),wallet=await nearWallet();
+  const outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:accountId,receiverId:contractId,actions:[{type:'FunctionCall',params:{methodName:'storage_deposit',args:{account_id:accountId,registration_only:true},gas:'30000000000000',deposit:minimum}}]});
+  return outcome.transaction.hash;
+}
 export function agentAccountId(handle:string,owner:string){const label=handle.toLowerCase().replaceAll('_','-').replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');if(label.length<2)throw new Error('Use at least two letters or numbers in the agent handle.');return `${label}.${owner}`;}
 export async function createAgentAccount(owner:string,handle:string,fundingNear='0.1',executionPublicKey?:string){
   const wallet=await nearWallet(),accounts=await wallet.getAccounts({network:'mainnet'}),account=accounts.find(value=>value.accountId===owner),accountId=agentAccountId(handle,owner);
@@ -61,4 +68,4 @@ export async function sendUsdcPayment(accountId:string,contractId:string,transfe
   actions.push(...transfers.map(value=>({type:'FunctionCall' as const,params:{methodName:'ft_transfer',args:{receiver_id:value.receiverId,amount:String(value.amountMinor),memo:`Scion ${value.kind.replaceAll('_',' ')}`},gas:'30000000000000',deposit:'1'}})));
   const outcome=await wallet.signAndSendTransaction({network:'mainnet',signerId:accountId,receiverId:contractId,actions});return outcome.transaction.hash;
 }
-async function viewContract(contractId:string,methodName:string,args:Record<string,unknown>){const response=await fetch('https://rpc.mainnet.fastnear.com',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:'scion-storage',method:'query',params:{request_type:'call_function',finality:'final',account_id:contractId,method_name:methodName,args_base64:btoa(JSON.stringify(args))}})}),body=await response.json() as any;if(!response.ok||body.error)throw new Error('Could not verify USDC account registration.');return JSON.parse(new TextDecoder().decode(Uint8Array.from(body.result.result)));}
+async function viewContract(contractId:string,methodName:string,args:Record<string,unknown>){const response=await fetch('https://rpc.mainnet.fastnear.com',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:'scion-storage',method:'query',params:{request_type:'call_function',finality:'final',account_id:contractId,method_name:methodName,args_base64:btoa(JSON.stringify(args))}})}),body=await response.json() as any;if(!response.ok||body.error)throw new Error('Could not verify token account registration.');return JSON.parse(new TextDecoder().decode(Uint8Array.from(body.result.result)));}
