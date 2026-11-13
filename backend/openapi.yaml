@@ -16,6 +16,8 @@ paths:
     post: { responses: { '200': { description: One-hour bearer session } } }
   /health:
     get: { responses: { '200': { description: Healthy } } }
+  /v1/health:
+    get: { responses: { '200': { description: Healthy (alias of /health; path advertised in README/JUDGING) } } }
   /v1/strategies:
     get: { responses: { '200': { description: Public strategy catalog } } }
     post: { security: [{ BearerAuth: [] }, { NearAccount: [] }], responses: { '201': { description: Strategy and immutable v1 created } } }
