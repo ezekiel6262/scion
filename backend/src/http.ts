@@ -7,7 +7,7 @@ export const createHandler=(service:ScionService,auth:WalletAuthService,internal
   try{
     actor=resolveActor(request,auth);const bearer=bearerToken(request);if(actor&&bearer)await service.ensureSession(actor,bearer,request.headers.get('user-agent')??'Unknown device');
     console.info(JSON.stringify({event:'request',requestId,method:request.method,path,actor}));
-    if(request.method==='GET'&&path==='/health')return json({ok:true,service:'scion-api',mode:process.env.SCION_EXECUTION_MODE??'simulated'},200,requestId);
+    if(request.method==='GET'&&(path==='/health'||path==='/v1/health'))return json({ok:true,service:'scion-api',mode:process.env.SCION_EXECUTION_MODE??'simulated'},200,requestId);
     if(request.method==='POST'&&path==='/v1/auth/challenge'){const b=await request.json() as any;return json({data:await auth.challenge(b.accountId,b.publicKey)},201,requestId);}
     if(request.method==='POST'&&path==='/v1/auth/verify'){const b=await request.json() as any;return json({data:await auth.verify(b.challengeId,b.signature)},200,requestId);}
     if(request.method==='GET'&&path==='/v1/strategies')return json({data:await service.listStrategies()},200,requestId);
