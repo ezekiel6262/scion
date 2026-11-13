@@ -36,7 +36,8 @@ For a deterministic four-minute walkthrough, use [docs/DEMO.md](docs/DEMO.md).
 
 | Status | Capability |
 |---|---|
-| **Live** | NEP-413 and email-wallet authentication, profiles, PostgreSQL persistence, AES-256-GCM encrypted strategy payloads, scoped/expiring/revocable capabilities, live NEAR balances, token discovery, 1Click quotes and settlement, verified checkout splits, fork lineage, agent policies, dedicated dual-key NEAR agent accounts, scheduled AI cycles, KMS-isolated signing, bounded autonomous swaps, receipts, pause, and on-chain key revocation. |
+| **Live** | NEP-413 and email-wallet authentication, profiles, PostgreSQL persistence, AES-256-GCM encrypted strategy payloads, scoped/expiring/revocable capabilities, live NEAR balances, token discovery, 1Click quotes and settlement, verified checkout splits, fork lineage, agent policies, scheduled AI research cycles that output owner-reviewed proposals, receipts, and pause. |
+| **Built and unit-tested, not executable in the current deployment** | User-owned bounded-agent *execution*: dedicated dual-key NEAR agent-account provisioning, KMS-isolated signing, bounded autonomous 1Click swaps, and on-chain key revocation. The code and tests exist, but the production API tier runs in a network-isolated VPC (database egress only), so these KMS/RPC-dependent steps do not run in the live deployment; demo agents never execute. |
 | **Protocol sandbox** | Fine-grained per-section re-encryption, delayed sealed plays, follower portfolio simulation, receipt-chain visualizations, performance scenarios, and the populated guided network. Simulated records are labeled **Demo** and excluded from verified live results. |
 | **Planned—not claimed as shipped** | TEE/private model inference, audited smart-contract enforcement, automatic agent marketplace earnings routed to subaccounts, and on-chain NFT/trophy minting. |
 

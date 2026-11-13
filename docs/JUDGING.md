@@ -11,7 +11,7 @@ Start here when evaluating Scion from the repository. Each claim names inspectab
 | 3 | Paid access follows independently verified NEAR settlement. | Live backend | `backend/src/near-transactions.ts`, `backend/src/service.ts`, `backend/test/near-transactions.test.ts` | Backend tests cover finality, signer, contract, recipients, amount, and replay. |
 | 4 | Private access is cryptographic, not just hidden UI. | Live storage/capability plane + per-section sandbox | `backend/src/content-crypto.ts`, `backend/src/service.ts`, `src/core/crypto.ts`, `tests/protocol.test.ts` | New production strategy payloads are AES-256-GCM encrypted at rest; signed capabilities enforce subject, resource, scope, expiry and revocation. |
 | 5 | Forks preserve lineage and upstream economics. | Live persisted model and verified checkout splits | `backend/src/service.ts`, `backend/src/domain.ts`, `backend/db/schema.ts` | Backend tests verify immutable parent edges, idempotent purchase, creator revenue, upstream royalty and protocol splits. |
-| 6 | Agents are user-owned, policy-bounded, and capable of autonomous execution. | Live, opt-in and funded by owner | `backend/src/agent-execution.ts`, `backend/src/service.ts`, `backend/aws/agent-runner.ts`, `src/ui/LiveAgents.tsx` | A bounded agent starts paused. Provisioning adds owner recovery plus a unique KMS-encrypted key. The model proposes; deterministic policy authorizes; 1Click settles; pause/revoke stops future signing. |
+| 6 | Agents are user-owned, policy-bounded, and capable of autonomous execution. | Research/proposal + policy: live. Execution (KMS signing, bounded swaps): built and unit-tested, but not executable in the current deployment — the VPC API tier has no KMS/RPC egress (see README boundary). | `backend/src/agent-execution.ts`, `backend/src/service.ts`, `backend/aws/agent-runner.ts`, `src/ui/LiveAgents.tsx` | A bounded agent starts paused. Provisioning adds owner recovery plus a unique KMS-encrypted key. The model proposes; deterministic policy authorizes; 1Click settles; pause/revoke stops future signing. |
 | 7 | The flagship thesis is sourced and reproducible. | Reproducible snapshot | `THESIS.md`, `data/`, `src/core/thesisModel.ts`, `scripts/rerun-model.ts` | `npm run model`; vary an input. |
 | 8 | Production isolates data and exposes observable services. | Deployed | `infra/template.yaml`, `infra/README.md`, `backend/openapi.yaml` | Visit `/api/v1/health`; inspect networking, alarms, backups, deletion protection. |
 
@@ -19,7 +19,7 @@ Start here when evaluating Scion from the repository. Each claim names inspectab
 
 - Seed activity is tagged **Demo**, carries `demo: true`, and is excluded from verified live performance.
 - Live product and deterministic protocol sandbox are separate execution paths.
-- Autonomous execution is opt-in only for funded bounded agents with verified dual-key NEAR accounts. Demo agents cannot activate or trade.
+- Autonomous execution is opt-in only for funded bounded agents with verified dual-key NEAR accounts. Demo agents cannot activate or trade. Note: the current production API runs in a network-isolated VPC (database egress only), so the KMS/RPC-dependent execution steps are not enabled in the live deployment; research/proposal cycles and policy checks are.
 - No TEE or NEAR AI Cloud attestation is claimed.
 - NFT-shaped demo records are not claimed as live on-chain minting.
 - AWS hosts the system; NEAR provides wallet identity, authorization, settlement, and Intents.
